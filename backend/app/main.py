@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import auth
+from app.utils.dependencies import get_current_user
 
 # Create the FastAPI application instance
 app = FastAPI(
@@ -29,3 +30,12 @@ def root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+# Protected test endpoint
+@app.get("/me")
+def get_me(current_user = Depends(get_current_user)):
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+        "full_name": current_user.full_name
+    }
