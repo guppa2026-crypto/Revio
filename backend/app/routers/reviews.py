@@ -94,3 +94,40 @@ def reject_reply(
     db.commit()
     db.refresh(review)
     return {"message": "Reply rejected", "review": review}
+from app.services.review_processor import process_review
+from app.models.tenant import Tenant
+from datetime import datetime
+import uuid
+
+@router.post("/test-process")
+def test_process_review(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Get the tenant
+    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
+
+    # Create a fake review
+    fake_review = Review(
+        tenant_id=current_user.tenant_id,
+        google_review_id=str(uuid.uuid4()),
+        reviewer_name="Test Customer",
+        rating=2,
+        review_text="The service was terrible and the food was cold. I want a refund.",
+        review_date=datetime.utcnow()
+    )
+    db.add(fake_review)
+    db.flush()
+
+    # Process it through the AI pipeline
+    processed = process_review(fake_review, db, tenant.name)
+
+    return {
+        "review_id": str(processed.id),
+        "sentiment": processed.sentiment,
+        "risk_level": processed.risk_level,
+        "summary": processed.ai_summary,
+        "reply_status": processed.reply_status,
+        "requires_approval": processed.requires_approval,
+        "ai_reply": processed.ai_reply
+    }
