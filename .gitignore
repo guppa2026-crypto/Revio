@@ -14,4 +14,4 @@ node_modules/
 
 # OS
 .DS_Store
-Thumbs.db
+Thumbs.dbbackend/celerybeat-schedule*
