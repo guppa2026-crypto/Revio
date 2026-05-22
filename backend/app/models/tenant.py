@@ -12,6 +12,9 @@ class Tenant(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     is_active = Column(Boolean, default=True)
+    is_subscribed = Column(Boolean, default=False)
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
