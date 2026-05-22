@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import uuid
 from app.database import Base
+from sqlalchemy.orm import relationship
 
 class Tenant(Base):
     __tablename__ = "tenants"
@@ -13,6 +14,8 @@ class Tenant(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    reviews = relationship("Review", back_populates="tenant")
 
     def __repr__(self):
         return f"<Tenant {self.name}>"
