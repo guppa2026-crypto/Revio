@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from celery import shared_task
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.models.tenant import Tenant
+from app.models import Tenant
 from app.models.review import Review
 from app.services.review_processor import process_review
 

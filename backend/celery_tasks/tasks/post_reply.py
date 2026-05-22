@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from celery import shared_task
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.models.review import Review
+from app.models import Tenant, Review
 
 logger = logging.getLogger(__name__)
 
