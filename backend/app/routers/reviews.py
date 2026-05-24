@@ -126,7 +126,7 @@ def test_process_review(
         "review_id": str(processed.id),
         "sentiment": processed.sentiment,
         "risk_level": processed.risk_level,
-        "summary": processed.ai_summary,
+        "summary": processed.summary,
         "reply_status": processed.reply_status,
         "requires_approval": processed.requires_approval,
         "ai_reply": processed.ai_reply
