@@ -40,23 +40,27 @@ Risk level rules:
 
 
 def generate_reply(review_text: str, rating: int, business_name: str) -> str:
-    prompt = f"""
-You are a professional customer service manager for {business_name}.
+    if rating >= 4:
+        tone_instruction = "The review is positive. Be warm and grateful. 2-3 sentences max."
+    elif rating == 3:
+        tone_instruction = "The review is mixed. Acknowledge both the positives and the specific concern raised."
+    else:
+        tone_instruction = "The review is negative. Be calm, professional, and empathetic. Acknowledge the specific issue they mentioned and invite them to give the business a call so we can make things right."
 
-Write a professional, empathetic reply to this customer review.
+    prompt = f"""
+You are a professional customer service manager responding to a Google review on behalf of {business_name}.
 
 Rating: {rating}/5 stars
 Review: "{review_text}"
 
+Tone guidance: {tone_instruction}
+
 Rules:
-- Keep it between 50-150 words
-- Be genuine and human, not robotic
-- Thank them if positive
-- Apologise and offer resolution if negative
-- Never be defensive
-- Don't use generic phrases like "We value your feedback"
-- Sign off naturally
-- Do NOT include subject lines or email formatting
+- Acknowledge the SPECIFIC thing they mentioned — do not write a generic reply
+- For negative reviews, end by inviting them to give us a ring so we can make things right
+- Never offer discounts or free items
+- Sound like a real person wrote it, not a template
+- Use phrases like "we value your feedback" or "we take this seriously" sparingly — only when they genuinely fit, not as a reflex
 
 Write only the reply text, nothing else.
 """
@@ -64,7 +68,7 @@ Write only the reply text, nothing else.
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
+        temperature=0.4
     )
 
     return response.choices[0].message.content.strip()
