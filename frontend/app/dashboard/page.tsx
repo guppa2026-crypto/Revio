@@ -10,12 +10,10 @@ type Review = {
   review_text: string
   sentiment: string
   risk_level: string
-  reply_status: string
-  ai_reply: string
-  ai_summary: string
+  status: string
+  generated_reply: string
   created_at: string
 }
-
 type Stats = {
   total: number
   avgRating: number
@@ -105,13 +103,13 @@ export default function DashboardPage() {
     fetchReviews()
   }
 
-  const filtered = filter === 'all' ? reviews : reviews.filter((r: Review) => r.reply_status === filter)
+  const filtered = filter === 'all' ? reviews : reviews.filter((r: Review) => r.status === filter)
 
   const stats: Stats = {
     total: reviews.length,
     avgRating: reviews.length ? Math.round((reviews.reduce((s: number, r: Review) => s + r.rating, 0) / reviews.length) * 10) / 10 : 0,
-    pendingCount: reviews.filter((r: Review) => r.reply_status === 'pending').length,
-    autoReplied: reviews.filter((r: Review) => r.reply_status === 'posted').length,
+    pendingCount: reviews.filter((r: Review) => r.status === 'pending').length,
+    autoReplied: reviews.filter((r: Review) => r.status === 'posted').length,
   }
 
   const FILTERS = ['all', 'pending', 'flagged', 'approved', 'posted']
@@ -227,7 +225,7 @@ export default function DashboardPage() {
                 const isEditing = editing[review.id] !== undefined
                 const replyText = isEditing ? editing[review.id] : review.ai_reply
                 return (
-                  <div key={review.id} className={'card' + (review.reply_status === 'flagged' ? ' card-flagged' : '')}>
+                  <div key={review.id} className={'card' + (review.status === 'flagged' ? ' card-flagged' : '')}>
                     <div className="card-top">
                       <div className="reviewer">
                         <div className="avatar" style={{ background: av.bg, color: av.color }}>{initials(review.reviewer_name)}</div>
@@ -238,20 +236,20 @@ export default function DashboardPage() {
                       </div>
                       <div className="badges">
                         <RiskBadge risk={review.risk_level} />
-                        <StatusBadge status={review.reply_status} />
+                        <StatusBadge status={review.status} />
                       </div>
                     </div>
 
                     <div className="stars">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</div>
                     <p className="review-text">{review.review_text}</p>
 
-                    {review.reply_status === 'flagged' ? (
+                    {review.status === 'flagged' ? (
                       <div className="flagged-banner">⚠ Flagged for manual review — respond personally, do not auto-reply.</div>
                     ) : replyText ? (
                       <div className="reply-box">
                         <div className="reply-label">
                           AI draft reply
-                          {review.reply_status === 'pending' && (
+                          {review.status === 'pending' && (
                             <span onClick={() => isEditing
                               ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
                               : setEditing(e => ({ ...e, [review.id]: review.ai_reply }))
@@ -265,7 +263,7 @@ export default function DashboardPage() {
                       </div>
                     ) : null}
 
-                    {review.reply_status === 'pending' && (
+                    {review.status === 'pending' && (
                       <div className="actions">
                         <button className="btn btn-approve" disabled={approving === review.id} onClick={() => handleApprove(review.id)}>
                           {approving === review.id ? 'Posting…' : 'Approve & post'}

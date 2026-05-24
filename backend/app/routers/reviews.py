@@ -122,12 +122,11 @@ def test_process_review(
     # Process it through the AI pipeline
     processed = process_review(fake_review, db, tenant.name)
 
-    return {
+return {
         "review_id": str(processed.id),
         "sentiment": processed.sentiment,
         "risk_level": processed.risk_level,
-        "summary": processed.summary,
-        "reply_status": processed.reply_status,
-        "requires_approval": processed.requires_approval,
-        "ai_reply": processed.ai_reply
+        "risk_reason": processed.risk_reason,
+        "reply_status": processed.status,
+        "ai_reply": processed.generated_reply
     }
