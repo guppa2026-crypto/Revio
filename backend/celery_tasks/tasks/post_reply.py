@@ -48,7 +48,7 @@ def retry_stuck_replies(self):
     try:
         cutoff = datetime.now(timezone.utc) - timedelta(minutes=STUCK_THRESHOLD_MINUTES)
         stuck = db.query(Review).filter(
-            Review.status == ReviewStatus.approved,
+            Review.status == "approved",
             Review.updated_at <= cutoff,
         ).all()
         for review in stuck:
