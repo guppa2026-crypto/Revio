@@ -13,7 +13,7 @@ app = FastAPI(
 # Allow the frontend to talk to the backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "https://revio-42f3.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
