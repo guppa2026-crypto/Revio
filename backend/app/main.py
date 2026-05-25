@@ -1,16 +1,14 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-<p><a href="httpfrom app.routers import auth, reviews, billing, admin, googles://revio-42f3.vercel.app/dashboard" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View Dashboard →</a></p>
+from app.routers import auth, reviews, billing, admin, google
 from app.utils.dependencies import get_current_user
 
-# Create the FastAPI application instance
 app = FastAPI(
     title="Review SaaS API",
     description="AI-powered review management platform",
     version="0.1.0"
 )
 
-# Allow the frontend to talk to the backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "https://revio-42f3.vercel.app"],
@@ -19,14 +17,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Connect routers
 app.include_router(auth.router)
 app.include_router(reviews.router)
 app.include_router(billing.router)
 app.include_router(admin.router)
 app.include_router(google.router)
 
-# Health check endpoint
 @app.get("/")
 def root():
     return {"status": "ok", "message": "Review SaaS API is running"}
@@ -35,7 +31,6 @@ def root():
 def health_check():
     return {"status": "healthy"}
 
-# Protected test endpoint
 @app.get("/me")
 def get_me(current_user = Depends(get_current_user)):
     return {
