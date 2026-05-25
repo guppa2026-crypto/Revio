@@ -11,7 +11,7 @@ type Review = {
   sentiment: string
   risk_level: string
   status: string
-  generated_reply: string
+  review.generated_reply: string
   created_at: string
 }
 type Stats = {
@@ -223,7 +223,7 @@ export default function DashboardPage() {
               {filtered.map((review: Review) => {
                 const av = avatarColor(review.reviewer_name)
                 const isEditing = editing[review.id] !== undefined
-                const replyText = isEditing ? editing[review.id] : review.ai_reply
+                const replyText = isEditing ? editing[review.id] : review.generated_reply
                 return (
                   <div key={review.id} className={'card' + (review.status === 'flagged' ? ' card-flagged' : '')}>
                     <div className="card-top">
@@ -252,7 +252,7 @@ export default function DashboardPage() {
                           {review.status === 'pending' && (
                             <span onClick={() => isEditing
                               ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
-                              : setEditing(e => ({ ...e, [review.id]: review.ai_reply }))
+                              : setEditing(e => ({ ...e, [review.id]: review.generated_reply }))
                             }>{isEditing ? 'cancel' : 'edit'}</span>
                           )}
                         </div>
@@ -269,7 +269,7 @@ export default function DashboardPage() {
                           {approving === review.id ? 'Posting…' : 'Approve & post'}
                         </button>
                         {!isEditing && (
-                          <button className="btn btn-edit" onClick={() => setEditing(e => ({ ...e, [review.id]: review.ai_reply }))}>Edit reply</button>
+                          <button className="btn btn-edit" onClick={() => setEditing(e => ({ ...e, [review.id]: review.generated_reply }))}>Edit reply</button>
                         )}
                         <button className="btn btn-reject" onClick={() => handleReject(review.id)}>Reject</button>
                       </div>
