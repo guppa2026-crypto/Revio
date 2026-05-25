@@ -28,7 +28,7 @@ def send_flagged_review_alert(to_email: str, reviewer_name: str, rating: int, re
     <p><strong>Reviewer:</strong> {reviewer_name}</p>
     <p><strong>Rating:</strong> {rating}/5</p>
     <p><strong>Review:</strong> {review_text}</p>
-    <p>Please log in to your dashboard to handle this review manually.</p>
+    <p><a href="https://revio-42f3.vercel.app/dashboard" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View Dashboard →</a></p>
     """
     return send_email(to_email, subject, html)
 
@@ -52,6 +52,6 @@ def send_approval_needed(to_email: str, reviewer_name: str, rating: int, review_
     <hr>
     <p><strong>Suggested reply:</strong></p>
     <blockquote>{reply_text}</blockquote>
-    <p>Log in to your dashboard to approve or reject this reply.</p>
+    <p><a href="https://revio-42f3.vercel.app/dashboard" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View Dashboard →</a></p>
     """
     return send_email(to_email, subject, html)
