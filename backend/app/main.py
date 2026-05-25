@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, reviews, billing
+from app.routers import auth, reviews, billing, admin
 from app.utils.dependencies import get_current_user
 
 # Create the FastAPI application instance
@@ -23,6 +23,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(reviews.router)
 app.include_router(billing.router)
+app.include_router(admin.router)
 
 # Health check endpoint
 @app.get("/")
