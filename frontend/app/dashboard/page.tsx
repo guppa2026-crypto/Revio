@@ -103,6 +103,15 @@ export default function DashboardPage() {
     fetchReviews()
   }
 
+  const handleGoogleConnect = async () => {
+    try {
+      const res = await api.get('/google/connect')
+      window.location.href = res.data.auth_url
+    } catch {
+      alert('Failed to start Google connection.')
+    }
+  }
+
   const filtered = filter === 'all' ? reviews : reviews.filter((r: Review) => r.status === filter)
 
   const stats: Stats = {
@@ -179,9 +188,11 @@ export default function DashboardPage() {
             <div className="nav-dot" />
             Revio
           </div>
-          <button className="nav-billing" onClick={() => router.push('/billing')} style={{fontSize:'13px',color:'#444',border:'1px solid #ECEAE4',background:'#fff',cursor:'pointer',padding:'6px 12px',borderRadius:'6px',marginRight:'8px'}}>Billing</button><button className="nav-signout" onClick={() => { localStorage.removeItem('token'); router.push('/login') }}>
-            Sign out
-          </button>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            <button onClick={handleGoogleConnect} style={{fontSize:'13px',color:'#444',border:'1px solid #ECEAE4',background:'#fff',cursor:'pointer',padding:'6px 12px',borderRadius:'6px'}}>Connect Google</button>
+            <button onClick={() => router.push('/billing')} style={{fontSize:'13px',color:'#444',border:'1px solid #ECEAE4',background:'#fff',cursor:'pointer',padding:'6px 12px',borderRadius:'6px'}}>Billing</button>
+            <button className="nav-signout" onClick={() => { localStorage.removeItem('token'); router.push('/login') }}>Sign out</button>
+          </div>
         </nav>
 
         <div className="page">
