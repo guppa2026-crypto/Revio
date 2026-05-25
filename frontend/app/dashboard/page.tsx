@@ -179,7 +179,7 @@ export default function DashboardPage() {
             <div className="nav-dot" />
             Revio
           </div>
-          <button className="nav-signout" onClick={() => { localStorage.removeItem('token'); router.push('/login') }}>
+          <button className="nav-billing" onClick={() => router.push('/billing')} style={{fontSize:'13px',color:'#444',border:'1px solid #ECEAE4',background:'#fff',cursor:'pointer',padding:'6px 12px',borderRadius:'6px',marginRight:'8px'}}>Billing</button><button className="nav-signout" onClick={() => { localStorage.removeItem('token'); router.push('/login') }}>
             Sign out
           </button>
         </nav>
