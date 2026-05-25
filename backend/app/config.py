@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     STRIPE_PRICE_ID: str = ""
     SENDGRID_API_KEY: str = ""
     FROM_EMAIL: str = ""
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
 
     class Config:
         env_file = ".env"

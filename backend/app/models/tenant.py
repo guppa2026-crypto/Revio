@@ -15,6 +15,11 @@ class Tenant(Base):
     is_subscribed = Column(Boolean, default=False)
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
+    google_access_token = Column(String, nullable=True)
+    google_refresh_token = Column(String, nullable=True)
+    google_token_expiry = Column(DateTime, nullable=True)
+    google_account_id = Column(String, nullable=True)
+    google_location_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

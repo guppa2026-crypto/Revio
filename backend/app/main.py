@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, reviews, billing, admin
+<p><a href="httpfrom app.routers import auth, reviews, billing, admin, googles://revio-42f3.vercel.app/dashboard" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View Dashboard →</a></p>
 from app.utils.dependencies import get_current_user
 
 # Create the FastAPI application instance
@@ -24,6 +24,7 @@ app.include_router(auth.router)
 app.include_router(reviews.router)
 app.include_router(billing.router)
 app.include_router(admin.router)
+app.include_router(google.router)
 
 # Health check endpoint
 @app.get("/")
