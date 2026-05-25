@@ -11,7 +11,7 @@ type Review = {
   sentiment: string
   risk_level: string
   status: string
-  review.generated_reply: string
+  generated_reply: string
   created_at: string
 }
 type Stats = {
