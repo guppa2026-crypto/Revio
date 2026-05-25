@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.tenant import Tenant
-from app.services.billing_service import create_checkout_session, cancel_subscription
+from app.models.user import User
+from app.services.billing_service import create_checkout_session, cancel_subscription, get_subscription
+from app.utils.dependencies import get_current_user
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -12,17 +14,47 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 @router.post("/create-checkout")
 def create_checkout(
-    request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    # TODO: get tenant from JWT — for now accepts tenant_id in body
-    body = {}
-    tenant_id = request.query_params.get("tenant_id")
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     url = create_checkout_session(tenant.id, tenant.email)
     return {"checkout_url": url}
+
+@router.get("/status")
+def billing_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    subscription = None
+    if tenant.stripe_subscription_id:
+        subscription = get_subscription(tenant.stripe_subscription_id)
+    return {
+        "is_subscribed": tenant.is_subscribed,
+        "stripe_subscription_id": tenant.stripe_subscription_id,
+        "subscription_status": subscription.get("status") if subscription else None,
+        "current_period_end": subscription.get("current_period_end") if subscription else None,
+    }
+
+@router.post("/cancel")
+def cancel_billing(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
+    if not tenant or not tenant.stripe_subscription_id:
+        raise HTTPException(status_code=400, detail="No active subscription")
+    success = cancel_subscription(tenant.stripe_subscription_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to cancel subscription")
+    tenant.is_subscribed = False
+    db.commit()
+    return {"message": "Subscription cancelled"}
 
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
@@ -56,4 +88,5 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             db.commit()
             logger.info("Tenant %s unsubscribed", tenant.id)
 
-    return {"status": "ok"}
+    return {"status": "ok"}# force redeploy
+# redeploy
