@@ -13,6 +13,7 @@ class Tenant(Base):
     email = Column(String, unique=True, nullable=False)
     is_active = Column(Boolean, default=True)
     is_subscribed = Column(Boolean, default=False)
+    subscription_status = Column(String, nullable=True)  # active | past_due | canceled | trialing
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
     google_access_token = Column(String, nullable=True)
