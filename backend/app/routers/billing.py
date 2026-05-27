@@ -174,7 +174,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     if event_type == "checkout.session.completed":
         session = event["data"]["object"]
-        tenant_id = session.get("metadata", {}).get("tenant_id")
+        tenant_id = (session.metadata or {}).get("tenant_id")
         if not tenant_id:
             logger.error("checkout.session.completed missing tenant_id — event %s", event_id)
             return {"status": "ok"}
