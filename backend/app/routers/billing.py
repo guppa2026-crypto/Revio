@@ -79,14 +79,11 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     event_type = event["type"]
     event_id = event["id"]
+    obj = event["data"]["object"].to_dict_recursive()
     logger.info("Stripe webhook received: %s (%s)", event_type, event_id)
 
     if event_type == "checkout.session.completed":
-        session = event["data"]["object"]
-        try:
-            metadata = dict(session["metadata"])
-        except (KeyError, TypeError):
-            metadata = {}
+        metadata = obj.get("metadata") or {}
         tenant_id = metadata.get("tenant_id")
         if not tenant_id:
             logger.error("checkout.session.completed missing tenant_id — event %s", event_id)
@@ -97,25 +94,24 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             logger.error("checkout.session.completed — tenant %s not found", tenant_id)
             return {"status": "ok"}
 
-        if tenant.is_subscribed and tenant.stripe_subscription_id == session["subscription"]:
+        if tenant.is_subscribed and tenant.stripe_subscription_id == obj.get("subscription"):
             logger.info("Already processed for tenant %s, skipping", tenant_id)
             return {"status": "ok"}
 
-        tenant.stripe_customer_id = session["customer"]
-        tenant.stripe_subscription_id = session["subscription"]
+        tenant.stripe_customer_id = obj.get("customer")
+        tenant.stripe_subscription_id = obj.get("subscription")
         tenant.is_subscribed = True
         tenant.subscription_status = "active"
         db.commit()
         logger.info("Tenant %s activated via checkout", tenant_id)
 
     elif event_type == "customer.subscription.updated":
-        sub = event["data"]["object"]
-        stripe_status = sub["status"]
+        stripe_status = obj.get("status")
         tenant = db.query(Tenant).filter(
-            Tenant.stripe_subscription_id == sub["id"]
+            Tenant.stripe_subscription_id == obj.get("id")
         ).first()
         if not tenant:
-            logger.warning("subscription.updated — no tenant for sub %s", sub["id"])
+            logger.warning("subscription.updated — no tenant for sub %s", obj.get("id"))
             return {"status": "ok"}
 
         tenant.subscription_status = stripe_status
@@ -124,8 +120,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         logger.info("Tenant %s subscription updated to %s", tenant.id, stripe_status)
 
     elif event_type == "invoice.payment_failed":
-        invoice = event["data"]["object"]
-        customer_id = invoice["customer"]
+        customer_id = obj.get("customer")
         tenant = db.query(Tenant).filter(
             Tenant.stripe_customer_id == customer_id
         ).first()
@@ -139,12 +134,11 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         logger.info("Tenant %s payment failed — marked past_due", tenant.id)
 
     elif event_type == "customer.subscription.deleted":
-        sub = event["data"]["object"]
         tenant = db.query(Tenant).filter(
-            Tenant.stripe_subscription_id == sub["id"]
+            Tenant.stripe_subscription_id == obj.get("id")
         ).first()
         if not tenant:
-            logger.warning("subscription.deleted — no tenant for sub %s", sub["id"])
+            logger.warning("subscription.deleted — no tenant for sub %s", obj.get("id"))
             return {"status": "ok"}
 
         tenant.is_subscribed = False
