@@ -83,8 +83,10 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     if event_type == "checkout.session.completed":
         session = event["data"]["object"]
-        raw_metadata = session.get("metadata")
-        metadata = dict(raw_metadata) if raw_metadata else {}
+        try:
+            metadata = dict(session["metadata"])
+        except (KeyError, TypeError):
+            metadata = {}
         tenant_id = metadata.get("tenant_id")
         if not tenant_id:
             logger.error("checkout.session.completed missing tenant_id — event %s", event_id)
@@ -95,12 +97,12 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             logger.error("checkout.session.completed — tenant %s not found", tenant_id)
             return {"status": "ok"}
 
-        if tenant.is_subscribed and tenant.stripe_subscription_id == session.get("subscription"):
+        if tenant.is_subscribed and tenant.stripe_subscription_id == session["subscription"]:
             logger.info("Already processed for tenant %s, skipping", tenant_id)
             return {"status": "ok"}
 
-        tenant.stripe_customer_id = session.get("customer")
-        tenant.stripe_subscription_id = session.get("subscription")
+        tenant.stripe_customer_id = session["customer"]
+        tenant.stripe_subscription_id = session["subscription"]
         tenant.is_subscribed = True
         tenant.subscription_status = "active"
         db.commit()
@@ -108,7 +110,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     elif event_type == "customer.subscription.updated":
         sub = event["data"]["object"]
-        stripe_status = sub.get("status")
+        stripe_status = sub["status"]
         tenant = db.query(Tenant).filter(
             Tenant.stripe_subscription_id == sub["id"]
         ).first()
@@ -123,7 +125,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     elif event_type == "invoice.payment_failed":
         invoice = event["data"]["object"]
-        customer_id = invoice.get("customer")
+        customer_id = invoice["customer"]
         tenant = db.query(Tenant).filter(
             Tenant.stripe_customer_id == customer_id
         ).first()
