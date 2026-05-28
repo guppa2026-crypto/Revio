@@ -5,20 +5,38 @@ from uuid import UUID
 from app.database import get_db
 from app.models.review import Review
 from app.models.user import User
+from app.models.tenant import Tenant
 from app.utils.dependencies import get_current_user
 from app.services.review_processor import process_review
-from app.models.tenant import Tenant
 from datetime import datetime
 import uuid
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
+
+
+def require_subscription(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> Tenant:
+    """Blocks access if tenant is not subscribed."""
+    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    if not tenant.is_subscribed:
+        raise HTTPException(
+            status_code=403,
+            detail="Active subscription required. Please upgrade at /billing."
+        )
+    return tenant
+
 
 @router.get("/")
 def get_reviews(
     status: Optional[str] = None,
     risk_level: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    tenant: Tenant = Depends(require_subscription)
 ):
     query = db.query(Review).filter(Review.tenant_id == current_user.tenant_id)
     if status:
@@ -28,11 +46,13 @@ def get_reviews(
     reviews = query.order_by(Review.created_at.desc()).all()
     return reviews
 
+
 @router.get("/{review_id}")
 def get_review(
     review_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    tenant: Tenant = Depends(require_subscription)
 ):
     review = db.query(Review).filter(
         Review.id == review_id,
@@ -42,11 +62,13 @@ def get_review(
         raise HTTPException(status_code=404, detail="Review not found")
     return review
 
+
 @router.post("/{review_id}/approve")
 def approve_reply(
     review_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    tenant: Tenant = Depends(require_subscription)
 ):
     review = db.query(Review).filter(
         Review.id == review_id,
@@ -61,11 +83,13 @@ def approve_reply(
     db.refresh(review)
     return {"message": "Reply approved", "review_id": str(review.id)}
 
+
 @router.post("/{review_id}/reject")
 def reject_reply(
     review_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    tenant: Tenant = Depends(require_subscription)
 ):
     review = db.query(Review).filter(
         Review.id == review_id,
@@ -78,12 +102,13 @@ def reject_reply(
     db.refresh(review)
     return {"message": "Reply rejected", "review_id": str(review.id)}
 
+
 @router.post("/test-process")
 def test_process_review(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    tenant: Tenant = Depends(require_subscription)
 ):
-    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     fake_review = Review(
         tenant_id=current_user.tenant_id,
         google_review_id=str(uuid.uuid4()),
