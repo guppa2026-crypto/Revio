@@ -79,7 +79,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     event_type = event["type"]
     event_id = event["id"]
-    obj = event["data"]["object"].to_dict_recursive()
+    obj = event["data"]["object"]._to_dict_recursive()
     logger.info("Stripe webhook received: %s (%s)", event_type, event_id)
 
     if event_type == "checkout.session.completed":
