@@ -71,6 +71,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
+  const [locked, setLocked] = useState(false)
   const [filter, setFilter] = useState('all')
   const [editing, setEditing] = useState<Record<string, string>>({})
   const [approving, setApproving] = useState<string | null>(null)
@@ -81,8 +82,15 @@ export default function DashboardPage() {
     try {
       const res = await api.get('/reviews/')
       setReviews(res.data.reviews || res.data)
-    } catch {
-      router.push('/login')
+    } catch (err: any) {
+      // 401 is handled by the api interceptor (clears token + redirects).
+      // 403 = authenticated but no active subscription -> show paywall, do NOT log out.
+      if (err.response?.status === 403) {
+        setLocked(true)
+      } else if (err.response?.status !== 401) {
+        // any other error: stop spinner, leave them on the page
+        setLocked(false)
+      }
     } finally {
       setLoading(false)
     }
@@ -176,6 +184,10 @@ export default function DashboardPage() {
     .btn-reject { background: #fff; color: #A32D2D; border-color: #F7C1C1; }
     .empty { background: #fff; border: 1px solid #ECEAE4; border-radius: 14px; padding: 4rem; text-align: center; color: #B0ADA5; font-size: 14px; }
     .loading { text-align: center; padding: 4rem; color: #B0ADA5; font-size: 14px; }
+    .paywall { background: #fff; border: 1px solid #ECEAE4; border-radius: 14px; padding: 3.5rem 2rem; text-align: center; }
+    .paywall-title { font-size: 20px; font-weight: 600; color: #1A1916; margin-bottom: 8px; }
+    .paywall-text { font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 20px; max-width: 380px; margin-left: auto; margin-right: auto; }
+    .paywall-btn { font-size: 14px; font-weight: 500; padding: 9px 22px; border-radius: 8px; cursor: pointer; border: none; background: #1A1916; color: #fff; }
     @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } .page { padding: 1rem; } }
   `
 
@@ -196,6 +208,16 @@ export default function DashboardPage() {
         </nav>
 
         <div className="page">
+          {locked ? (
+            <div className="paywall">
+              <div className="paywall-title">Upgrade to Pro</div>
+              <div className="paywall-text">
+                Review management is a Pro feature. Subscribe for $18/month to unlock unlimited reviews and AI replies.
+              </div>
+              <button className="paywall-btn" onClick={() => router.push('/billing')}>View plans</button>
+            </div>
+          ) : (
+          <>
           <div className="stats">
             <div className="stat">
               <div className="stat-label">Total reviews</div>
@@ -289,6 +311,8 @@ export default function DashboardPage() {
                 )
               })}
             </div>
+          )}
+          </>
           )}
         </div>
       </div>
