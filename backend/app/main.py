@@ -11,7 +11,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://revio-42f3.vercel.app"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://revio-42f3.vercel.app",
+        "https://reviodigital.uk",
+        "https://www.reviodigital.uk",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

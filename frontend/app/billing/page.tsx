@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
+import axios from 'axios'
 
 type BillingStatus = {
   is_subscribed: boolean
@@ -29,8 +30,12 @@ export default function BillingPage() {
     try {
       const res = await api.get('/billing/status')
       setStatus(res.data)
-    } catch {
-      router.push('/login')
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        router.push('/login')
+      } else {
+        setMessage('Could not load your billing info. Refresh the page or try again shortly.')
+      }
     } finally {
       setLoading(false)
     }

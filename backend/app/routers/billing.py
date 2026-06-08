@@ -80,7 +80,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     event_type = event["type"]
     event_id = event["id"]
-    obj = json.loads(str(event["data"]["object"]))
+    obj = event["data"]["object"]
     logger.info("Stripe webhook received: %s (%s)", event_type, event_id)
 
     if event_type == "checkout.session.completed":
