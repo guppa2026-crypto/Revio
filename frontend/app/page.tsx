@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import ReviewCalculator from '@/components/ReviewCalculator'
 
 export default function HomePage() {
   const [loggedIn, setLoggedIn] = useState(false)
@@ -148,6 +149,9 @@ export default function HomePage() {
             </div>
           </header>
         </div>
+
+        
+        <ReviewCalculator />
 
         <section className="section wrap" id="how">
           <div className="section-label">How it works</div>
