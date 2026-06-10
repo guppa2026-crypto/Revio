@@ -332,7 +332,7 @@ export default function DashboardPage() {
           {showLocationPicker && (
             <div className="location-banner">
               <div className="location-banner-title">Select your business location</div>
-              <div className="location-banner-sub">Choose which Google Business Profile location Revio should manage.</div>
+              <div className="location-banner-sub">Choose the one Google Business Profile location Revio will manage. This can be changed later from Settings.</div>
               {locationSaved ? (
                 <div className="location-saved">✓ Location saved — reviews will start syncing shortly.</div>
               ) : (

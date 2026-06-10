@@ -191,6 +191,7 @@ export default function HomePage() {
             <div className="price-name">Revio Pro</div>
             <div className="price-amount">£18<span>/month inc VAT</span></div>
             <div className="price-list">
+              <div className="feature"><span className="feature-check">✓</span>One Google Business Profile location</div>
               <div className="feature"><span className="feature-check">✓</span>Unlimited reviews and AI replies</div>
               <div className="feature"><span className="feature-check">✓</span>Automated reply generation</div>
               <div className="feature"><span className="feature-check">✓</span>Email alerts for flagged reviews</div>

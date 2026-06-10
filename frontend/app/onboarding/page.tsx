@@ -48,7 +48,7 @@ export default function OnboardingPage() {
         <div className="card">
           <div className="logo"><span className="nav-dot" />Revio</div>
           <div className="title">Welcome to Revio 👋</div>
-          <p className="sub">You are two steps away from having AI reply to every Google review automatically.</p>
+          <p className="sub">Two steps to get AI replies on your Google reviews. Revio manages one Google Business Profile location per account.</p>
 
           <div className="steps">
             <div className="step">
