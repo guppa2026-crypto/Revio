@@ -216,89 +216,132 @@ export default function DashboardPage() {
 
   const css = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    .shell { min-height: 100vh; background: #F7F6F3; font-family: system-ui, sans-serif; }
-    .nav { background: #fff; border-bottom: 1px solid #ECEAE4; padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
-    .nav-logo { font-size: 17px; font-weight: 600; color: #1A1916; display: flex; align-items: center; gap: 8px; }
-    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: #7F77DD; }
-    .nav-signout { font-size: 13px; color: #888; border: none; background: none; cursor: pointer; padding: 6px 10px; border-radius: 6px; }
-    .nav-signout:hover { background: #F7F6F3; color: #444; }
-    .page { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 2rem; }
-    .stat { background: #fff; border: 1px solid #ECEAE4; border-radius: 12px; padding: 16px 18px; }
-    .stat-label { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #9E9B93; margin-bottom: 6px; }
-    .stat-value { font-size: 28px; font-weight: 600; color: #1A1916; line-height: 1; }
-    .stat-sub { font-size: 12px; color: #B0ADA5; margin-top: 5px; }
-    .stat-pending .stat-value { color: #BA7517; }
-    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-    .toolbar-title { font-size: 15px; font-weight: 600; color: #1A1916; }
-    .filters { display: flex; gap: 6px; flex-wrap: wrap; }
-    .filter-btn { font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 99px; border: 1px solid #ECEAE4; background: #fff; color: #888; cursor: pointer; text-transform: capitalize; }
+    body { background: #F2F1EE; }
+    .shell { min-height: 100vh; background: #F2F1EE; font-family: system-ui, -apple-system, sans-serif; }
+
+    /* NAV */
+    .nav { background: #1A1916; padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 0 rgba(255,255,255,0.06); }
+    .nav-logo { font-size: 17px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 9px; }
+    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, #A89CF5, #7F77DD); box-shadow: 0 0 0 3px rgba(127,119,221,0.3); }
+    .nav-actions { display: flex; align-items: center; gap: 6px; }
+    .nav-btn { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65); border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); cursor: pointer; padding: 6px 13px; border-radius: 7px; font-family: inherit; transition: background 0.15s, color 0.15s; }
+    .nav-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .nav-signout { font-size: 13px; color: rgba(255,255,255,0.4); border: none; background: none; cursor: pointer; padding: 6px 10px; border-radius: 6px; font-family: inherit; }
+    .nav-signout:hover { color: rgba(255,255,255,0.7); }
+
+    /* PAGE */
+    .page { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* STATS */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.75rem; }
+    .stat { background: #fff; border: 1px solid #E8E6E0; border-radius: 14px; padding: 18px 20px; position: relative; overflow: hidden; transition: box-shadow 0.2s; }
+    .stat:hover { box-shadow: 0 4px 16px rgba(26,25,22,0.08); }
+    .stat-icon { font-size: 18px; margin-bottom: 12px; opacity: 0.8; }
+    .stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #A8A49C; margin-bottom: 6px; }
+    .stat-value { font-size: 30px; font-weight: 700; color: #1A1916; line-height: 1; letter-spacing: -0.02em; }
+    .stat-sub { font-size: 12px; color: #C0BCB4; margin-top: 6px; }
+    .stat-rating { background: linear-gradient(135deg, #EFEDFB 0%, #E6E3FA 100%); border-color: #D8D4F5; }
+    .stat-rating .stat-value { background: linear-gradient(120deg, #7F77DD, #B3A0F2); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .stat-pending { border-color: #F5E4C0; background: #FFFBF2; }
+    .stat-pending .stat-value { color: #B07A12; }
+
+    /* TOOLBAR */
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .section-title { font-size: 14px; font-weight: 600; color: #1A1916; }
+    .toolbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .filters { display: flex; gap: 5px; flex-wrap: wrap; }
+    .filter-btn { font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 99px; border: 1px solid #E8E6E0; background: #fff; color: #9E9B93; cursor: pointer; text-transform: capitalize; transition: all 0.15s; }
+    .filter-btn:hover { border-color: #C9C5BC; color: #555; }
     .filter-btn.active { background: #1A1916; color: #fff; border-color: #1A1916; }
-    .reviews { display: flex; flex-direction: column; gap: 12px; }
-    .card { background: #fff; border: 1px solid #ECEAE4; border-radius: 14px; padding: 18px 20px; }
-    .card-flagged { border-color: #F7C1C1; background: #FFFAFA; }
-    .card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
-    .reviewer { display: flex; align-items: center; gap: 10px; }
-    .avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+    .btn-import { background: linear-gradient(135deg, #7F77DD, #6A61C9); color: #fff; border: none; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; transition: opacity 0.15s; white-space: nowrap; }
+    .btn-import:hover { opacity: 0.88; }
+
+    /* REVIEW CARDS */
+    .reviews { display: flex; flex-direction: column; gap: 10px; }
+    .card { background: #fff; border: 1px solid #E8E6E0; border-radius: 16px; padding: 20px 22px; transition: box-shadow 0.2s; }
+    .card:hover { box-shadow: 0 4px 20px rgba(26,25,22,0.07); }
+    .card-flagged { border-color: #F2C4C4; background: linear-gradient(135deg, #FFFAFA, #FFF5F5); }
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+    .reviewer { display: flex; align-items: center; gap: 11px; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
     .reviewer-name { font-size: 14px; font-weight: 600; color: #1A1916; }
-    .reviewer-meta { font-size: 12px; color: #B0ADA5; margin-top: 1px; }
-    .badges { display: flex; gap: 6px; align-items: center; }
-    .badge { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 99px; }
-    .badge-low { background: #EAF3DE; color: #3B6D11; }
-    .badge-med { background: #FAEEDA; color: #854F0B; }
-    .badge-high { background: #FCEBEB; color: #A32D2D; }
-    .badge-pending { background: #FAEEDA; color: #854F0B; }
-    .badge-approved { background: #EAF3DE; color: #3B6D11; }
-    .badge-posted { background: #E6F1FB; color: #185FA5; }
-    .badge-rejected { background: #F1EFE8; color: #5F5E5A; }
-    .stars { color: #EF9F27; font-size: 14px; margin-bottom: 8px; }
-    .review-text { font-size: 14px; color: #4A4844; line-height: 1.6; margin-bottom: 14px; }
-    .reply-box { background: #F7F6F3; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; border-left: 2.5px solid #7F77DD; }
-    .reply-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #9E9B93; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
-    .reply-label span { color: #7F77DD; cursor: pointer; }
-    .reply-text { font-size: 13px; color: #2C2C2A; line-height: 1.65; }
+    .reviewer-meta { font-size: 12px; color: #B8B4AC; margin-top: 2px; }
+    .badges { display: flex; gap: 5px; align-items: center; }
+    .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; letter-spacing: 0.02em; }
+    .badge-low { background: #E8F4DC; color: #3A6B10; }
+    .badge-med { background: #FDE8C8; color: #8A5010; }
+    .badge-high { background: #FCE8E8; color: #A32D2D; }
+    .badge-pending { background: #FDE8C8; color: #8A5010; }
+    .badge-approved { background: #E8F4DC; color: #3A6B10; }
+    .badge-posted { background: #DCEcFB; color: #1A5FA5; }
+    .badge-rejected { background: #EFEDE7; color: #5F5E5A; }
+    .stars { color: #F0A020; font-size: 15px; margin-bottom: 10px; letter-spacing: 1px; }
+    .review-text { font-size: 14px; color: #4A4844; line-height: 1.65; margin-bottom: 16px; }
+    .reply-box { background: linear-gradient(135deg, #F7F6F3, #F3F1FC); border-radius: 11px; padding: 14px 16px; margin-bottom: 16px; border-left: 3px solid #7F77DD; }
+    .reply-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #A8A49C; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .reply-label-pill { background: #EFEDFB; color: #6A61C9; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; }
+    .reply-label span { color: #7F77DD; cursor: pointer; font-size: 11px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+    .reply-text { font-size: 13px; color: #2C2C2A; line-height: 1.7; }
     .reply-edit { width: 100%; font-size: 13px; color: #2C2C2A; line-height: 1.65; background: #fff; border: 1px solid #C8C4BC; border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 80px; font-family: inherit; outline: none; }
-    .flagged-banner { background: #FCEBEB; border: 1px solid #F7C1C1; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #A32D2D; font-weight: 500; }
-    .actions { display: flex; gap: 8px; }
-    .btn { font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; font-family: inherit; }
+    .reply-edit:focus { border-color: #7F77DD; }
+    .flagged-banner { background: #FCE8E8; border: 1px solid #F2C4C4; border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #A32D2D; font-weight: 500; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn { font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 9px; cursor: pointer; border: 1px solid transparent; font-family: inherit; transition: all 0.15s; }
     .btn-approve { background: #1A1916; color: #fff; border-color: #1A1916; }
-    .btn-approve:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-edit { background: #fff; color: #444; border-color: #ECEAE4; }
-    .btn-reject { background: #fff; color: #A32D2D; border-color: #F7C1C1; }
-    .btn-import { background: #fff; color: #444; border: 1px solid #ECEAE4; font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; }
-    .btn-import:hover { background: #F7F6F3; }
-    .empty { background: #fff; border: 1px solid #ECEAE4; border-radius: 14px; padding: 4rem; text-align: center; color: #B0ADA5; font-size: 14px; }
+    .btn-approve:hover { background: #333; }
+    .btn-approve:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-edit { background: #fff; color: #555; border-color: #E8E6E0; }
+    .btn-edit:hover { border-color: #C9C5BC; }
+    .btn-reject { background: #fff; color: #A32D2D; border-color: #F2C4C4; }
+    .btn-reject:hover { background: #FFF5F5; }
+
+    /* EMPTY / LOADING */
+    .empty { background: #fff; border: 1px solid #E8E6E0; border-radius: 16px; padding: 5rem 2rem; text-align: center; }
+    .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+    .empty-title { font-size: 15px; font-weight: 600; color: #9E9B93; margin-bottom: 6px; }
+    .empty-sub { font-size: 13px; color: #C0BCB4; }
     .loading { text-align: center; padding: 4rem; color: #B0ADA5; font-size: 14px; }
-    .paywall { background: #fff; border: 1px solid #ECEAE4; border-radius: 14px; padding: 3.5rem 2rem; text-align: center; }
-    .paywall-title { font-size: 20px; font-weight: 600; color: #1A1916; margin-bottom: 8px; }
-    .paywall-text { font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 20px; max-width: 380px; margin-left: auto; margin-right: auto; }
-    .paywall-btn { font-size: 14px; font-weight: 500; padding: 9px 22px; border-radius: 8px; cursor: pointer; border: none; background: #1A1916; color: #fff; }
-    .location-banner { background: #fff; border: 1px solid #E0DCFA; border-left: 3px solid #7F77DD; border-radius: 14px; padding: 20px 24px; margin-bottom: 2rem; }
-    .location-banner-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-    .location-banner-sub { font-size: 13px; color: #9E9B93; margin-bottom: 16px; }
+
+    /* PAYWALL */
+    .paywall { background: #fff; border: 1px solid #E8E6E0; border-radius: 18px; padding: 4rem 2rem; text-align: center; position: relative; overflow: hidden; }
+    .paywall::before { content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 400px; height: 300px; background: radial-gradient(ellipse at center, rgba(127,119,221,0.12), transparent 70%); pointer-events: none; }
+    .paywall-title { font-size: 22px; font-weight: 700; color: #1A1916; margin-bottom: 8px; position: relative; }
+    .paywall-text { font-size: 14px; color: #888; line-height: 1.65; margin-bottom: 24px; max-width: 380px; margin-left: auto; margin-right: auto; position: relative; }
+    .paywall-btn { font-size: 14px; font-weight: 600; padding: 11px 28px; border-radius: 10px; cursor: pointer; border: none; background: linear-gradient(135deg, #1A1916, #2A2540); color: #fff; position: relative; transition: opacity 0.15s; box-shadow: 0 4px 14px rgba(26,25,22,0.2); }
+    .paywall-btn:hover { opacity: 0.88; }
+
+    /* LOCATION PICKER */
+    .location-banner { background: #fff; border: 1px solid #DDD9F8; border-radius: 16px; padding: 22px 26px; margin-bottom: 1.75rem; box-shadow: 0 2px 12px rgba(127,119,221,0.1); }
+    .location-banner-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: #1A1916; }
+    .location-banner-sub { font-size: 13px; color: #9E9B93; margin-bottom: 18px; }
     .location-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
     .location-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
-    .location-field label { font-size: 12px; font-weight: 500; color: #5F5E5A; }
-    .location-field select { font-size: 13px; color: #1A1916; background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 8px; padding: 8px 10px; font-family: inherit; outline: none; cursor: pointer; }
+    .location-field label { font-size: 12px; font-weight: 600; color: #5F5E5A; }
+    .location-field select { font-size: 13px; color: #1A1916; background: #F7F6F3; border: 1px solid #E8E6E0; border-radius: 9px; padding: 9px 11px; font-family: inherit; outline: none; cursor: pointer; }
     .location-field select:focus { border-color: #7F77DD; }
-    .btn-save-loc { font-size: 13px; font-weight: 500; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: none; background: #1A1916; color: #fff; font-family: inherit; white-space: nowrap; }
-    .btn-save-loc:disabled { opacity: 0.5; cursor: not-allowed; }
-    .location-saved { font-size: 13px; color: #3B6D11; font-weight: 500; }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(26,25,22,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
-    .modal { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(26,25,22,0.2); }
-    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
-    .modal-sub { font-size: 13px; color: #9E9B93; margin-bottom: 20px; }
-    .modal-field { margin-bottom: 14px; }
-    .modal-field label { display: block; font-size: 13px; font-weight: 500; color: #5F5E5A; margin-bottom: 6px; }
-    .modal-field input, .modal-field textarea { width: 100%; font-size: 14px; color: #1A1916; background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 8px; padding: 10px 12px; font-family: inherit; outline: none; resize: vertical; }
+    .btn-save-loc { font-size: 13px; font-weight: 600; padding: 9px 20px; border-radius: 9px; cursor: pointer; border: none; background: #1A1916; color: #fff; font-family: inherit; white-space: nowrap; transition: background 0.15s; }
+    .btn-save-loc:hover { background: #333; }
+    .btn-save-loc:disabled { opacity: 0.45; cursor: not-allowed; }
+    .location-saved { font-size: 13px; color: #3B6D11; font-weight: 600; background: #EAF3DE; padding: 10px 14px; border-radius: 9px; display: inline-block; }
+
+    /* IMPORT MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(10,9,8,0.6); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+    .modal { background: #fff; border-radius: 18px; padding: 30px; width: 100%; max-width: 460px; box-shadow: 0 24px 80px rgba(26,25,22,0.22); }
+    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .modal-sub { font-size: 13px; color: #9E9B93; margin-bottom: 22px; }
+    .modal-field { margin-bottom: 16px; }
+    .modal-field label { display: block; font-size: 13px; font-weight: 600; color: #5F5E5A; margin-bottom: 6px; }
+    .modal-field input, .modal-field textarea { width: 100%; font-size: 14px; color: #1A1916; background: #F7F6F3; border: 1px solid #E8E6E0; border-radius: 9px; padding: 10px 13px; font-family: inherit; outline: none; resize: vertical; transition: border-color 0.15s; }
     .modal-field input:focus, .modal-field textarea:focus { border-color: #7F77DD; background: #fff; }
     .modal-field textarea { min-height: 100px; }
-    .star-picker { display: flex; gap: 6px; }
-    .star-btn { font-size: 22px; background: none; border: none; cursor: pointer; padding: 0; line-height: 1; opacity: 0.3; transition: opacity 0.1s; }
+    .star-picker { display: flex; gap: 4px; }
+    .star-btn { font-size: 24px; background: none; border: none; cursor: pointer; padding: 0; line-height: 1; opacity: 0.2; transition: opacity 0.1s, transform 0.1s; }
     .star-btn.active { opacity: 1; }
-    .modal-actions { display: flex; gap: 8px; margin-top: 6px; }
-    .modal-error { font-size: 13px; color: #A32D2D; background: #FCEBEB; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
-    @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } .page { padding: 1rem; } .location-row { flex-direction: column; } }
+    .star-btn:hover { transform: scale(1.15); }
+    .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .modal-error { font-size: 13px; color: #A32D2D; background: #FCE8E8; border-radius: 9px; padding: 10px 13px; margin-bottom: 16px; }
+
+    @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } .page { padding: 1rem; } .location-row { flex-direction: column; } .nav { padding: 0 1rem; } }
   `
 
   return (
@@ -310,10 +353,10 @@ export default function DashboardPage() {
             <div className="nav-dot" />
             Revio
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-            <button onClick={handleGoogleConnect} style={{fontSize:'13px',color:'#444',border:'1px solid #ECEAE4',background:'#fff',cursor:'pointer',padding:'6px 12px',borderRadius:'6px'}}>Connect Google</button>
-            <button onClick={() => router.push('/settings')} style={{fontSize:'13px',color:'#444',border:'1px solid #ECEAE4',background:'#fff',cursor:'pointer',padding:'6px 12px',borderRadius:'6px'}}>Settings</button>
-            <button onClick={() => router.push('/billing')} style={{fontSize:'13px',color:'#444',border:'1px solid #ECEAE4',background:'#fff',cursor:'pointer',padding:'6px 12px',borderRadius:'6px'}}>Billing</button>
+          <div className="nav-actions">
+            <button className="nav-btn" onClick={handleGoogleConnect}>Connect Google</button>
+            <button className="nav-btn" onClick={() => router.push('/settings')}>Settings</button>
+            <button className="nav-btn" onClick={() => router.push('/billing')}>Billing</button>
             <button className="nav-signout" onClick={() => { localStorage.removeItem('token'); router.push('/login') }}>Sign out</button>
           </div>
         </nav>
@@ -365,20 +408,24 @@ export default function DashboardPage() {
 
           <div className="stats">
             <div className="stat">
+              <div className="stat-icon">📋</div>
               <div className="stat-label">Total reviews</div>
               <div className="stat-value">{stats.total}</div>
             </div>
-            <div className="stat">
+            <div className="stat stat-rating">
+              <div className="stat-icon">⭐</div>
               <div className="stat-label">Avg rating</div>
               <div className="stat-value">{stats.avgRating || '—'}</div>
-              {stats.avgRating > 0 && <div className="stat-sub">{'★'.repeat(Math.round(stats.avgRating))}{'☆'.repeat(5 - Math.round(stats.avgRating))}</div>}
+              {stats.avgRating > 0 && <div className="stat-sub">out of 5.0</div>}
             </div>
             <div className={'stat' + (stats.pendingCount > 0 ? ' stat-pending' : '')}>
+              <div className="stat-icon">⏳</div>
               <div className="stat-label">Pending approval</div>
               <div className="stat-value">{stats.pendingCount}</div>
               {stats.pendingCount > 0 && <div className="stat-sub">need your review</div>}
             </div>
             <div className="stat">
+              <div className="stat-icon">✅</div>
               <div className="stat-label">Auto-posted</div>
               <div className="stat-value">{stats.autoReplied}</div>
             </div>
@@ -387,10 +434,10 @@ export default function DashboardPage() {
           <RatingGoal rating={stats.avgRating} count={stats.total} />
           <ReviewCalculator />
 
-          <div className="toolbar">
-            <span className="toolbar-title">Reviews</span>
-            <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}}>
-              <button className="btn-import" onClick={() => setShowImport(true)}>+ Add review manually</button>
+          <div className="section-header">
+            <span className="section-title">Reviews</span>
+            <div className="toolbar-right">
+              <button className="btn-import" onClick={() => setShowImport(true)}>+ Add manually</button>
               <div className="filters">
                 {FILTERS.map(f => (
                   <button key={f} className={'filter-btn' + (filter === f ? ' active' : '')} onClick={() => setFilter(f)}>{f}</button>
@@ -400,7 +447,13 @@ export default function DashboardPage() {
           </div>
 
           {loading && <div className="loading">Loading reviews…</div>}
-          {!loading && filtered.length === 0 && <div className="empty">No reviews here yet.</div>}
+          {!loading && filtered.length === 0 && (
+            <div className="empty">
+              <div className="empty-icon">📭</div>
+              <div className="empty-title">No reviews here yet</div>
+              <div className="empty-sub">Connect your Google Business Profile or add a review manually to get started.</div>
+            </div>
+          )}
 
           {!loading && (
             <div className="reviews">
@@ -432,7 +485,7 @@ export default function DashboardPage() {
                     ) : replyText ? (
                       <div className="reply-box">
                         <div className="reply-label">
-                          AI draft reply
+                          <span className="reply-label-pill">AI Draft</span>
                           {review.status === 'pending' && (
                             <span onClick={() => isEditing
                               ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
