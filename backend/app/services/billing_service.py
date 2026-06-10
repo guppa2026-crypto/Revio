@@ -15,8 +15,8 @@ def create_checkout_session(tenant_id: str, tenant_email: str) -> str:
             "quantity": 1,
         }],
         mode="subscription",
-       success_url="https://revio-42f3.vercel.app/dashboard?subscription=success",
-cancel_url="https://revio-42f3.vercel.app/billing?subscription=cancelled",
+        success_url="https://reviodigital.uk/dashboard?subscription=success",
+        cancel_url="https://reviodigital.uk/billing?subscription=cancelled",
         metadata={"tenant_id": str(tenant_id)},
     )
     return session.url

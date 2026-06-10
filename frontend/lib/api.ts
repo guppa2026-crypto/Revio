@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'https://revio-production-4d73.up.railway.app',
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'https://api.reviodigital.uk',
   headers: { 'Content-Type': 'application/json' },
 })
 

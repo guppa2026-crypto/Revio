@@ -57,7 +57,6 @@ export default function ReviewCalculator() {
     <section className="rc-section">
       <style>{css}</style>
       <div className="rc-inner">
-        <div className="rc-label">Free tool</div>
         <h2 className="rc-title">How many reviews to your next rating?</h2>
         <p className="rc-sub">See how many 5★ reviews it takes to move up a notch.</p>
         <div className="rc-card">
@@ -74,7 +73,6 @@ export default function ReviewCalculator() {
           <div className="rc-result">{result}</div>
           <div className="rc-note">Assumes new reviews are 5★. This estimates your average rating, not Google rounding.</div>
         </div>
-        <a className="rc-cta" href="/register">Get started with Revio</a>
       </div>
     </section>
   )

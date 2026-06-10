@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import ReviewCalculator from '@/components/ReviewCalculator'
 
 export default function HomePage() {
   const [loggedIn, setLoggedIn] = useState(false)
@@ -110,7 +109,7 @@ export default function HomePage() {
       <style>{css}</style>
       <div className="shell">
         <nav className="nav">
-          <div className="nav-logo"><span className="nav-dot" />Revio</div>
+          <div className="nav-logo"><img src="/reviologo.png" alt="Revio" style={{height:'32px',width:'auto'}} /></div>
           <div className="nav-links">
             <a className="nav-login" href="/login">Log in</a>
             <a className="nav-cta" href={primaryHref}>{primaryLabel}</a>
@@ -149,9 +148,6 @@ export default function HomePage() {
             </div>
           </header>
         </div>
-
-        
-        <ReviewCalculator />
 
         <section className="section wrap" id="how">
           <div className="section-label">How it works</div>
@@ -199,6 +195,7 @@ export default function HomePage() {
               <div className="feature"><span className="feature-check">✓</span>Automated reply generation</div>
               <div className="feature"><span className="feature-check">✓</span>Email alerts for flagged reviews</div>
               <div className="feature"><span className="feature-check">✓</span>Google Reviews integration</div>
+              <div className="feature"><span className="feature-check">✓</span>Rating goal calculator & live tracker</div>
             </div>
             <a className="price-cta" href={primaryHref}>{primaryLabel}</a>
           </div>
@@ -214,7 +211,7 @@ export default function HomePage() {
 
         <footer className="wrap">
           <div className="footer">
-            <div className="footer-brand"><span className="nav-dot" />Revio</div>
+            <div className="footer-brand"><img src="/reviologo.png" alt="Revio" style={{height:'24px',width:'auto'}} /></div>
             <div className="footer-copy">© 2026 Revio · AI review management for UK businesses</div>
           </div>
         </footer>

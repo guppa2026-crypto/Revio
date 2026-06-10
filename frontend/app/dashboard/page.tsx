@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
+import RatingGoal from '@/components/RatingGoal'
+import ReviewCalculator from '@/components/ReviewCalculator'
 
 type Review = {
   id: string
@@ -197,8 +199,7 @@ export default function DashboardPage() {
       <div className="shell">
         <nav className="nav">
           <div className="nav-logo">
-            <div className="nav-dot" />
-            Revio
+            <img src="/reviologo.png" alt="Revio" style={{height:'32px',width:'auto'}} />
           </div>
           <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
             <button onClick={handleGoogleConnect} style={{fontSize:'13px',color:'#444',border:'1px solid #ECEAE4',background:'#fff',cursor:'pointer',padding:'6px 12px',borderRadius:'6px'}}>Connect Google</button>
@@ -212,7 +213,7 @@ export default function DashboardPage() {
             <div className="paywall">
               <div className="paywall-title">Upgrade to Pro</div>
               <div className="paywall-text">
-                Review management is a Pro feature. Subscribe for $18/month to unlock unlimited reviews and AI replies.
+                Review management is a Pro feature. Subscribe for £18/month to unlock unlimited reviews and AI replies.
               </div>
               <button className="paywall-btn" onClick={() => router.push('/billing')}>View plans</button>
             </div>
@@ -239,6 +240,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          <RatingGoal rating={stats.avgRating} count={stats.total} />
+          <ReviewCalculator />
+
+          <div className="toolbar"></div>
           <div className="toolbar">
             <span className="toolbar-title">Reviews</span>
             <div className="filters">
