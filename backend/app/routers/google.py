@@ -62,7 +62,7 @@ async def google_callback(code: str, state: str, db: Session = Depends(get_db)):
     db.commit()
     logger.info("Google OAuth completed for tenant %s", tenant.id)
 
-    return RedirectResponse("https://revio-42f3.vercel.app/dashboard?google=connected")
+    return RedirectResponse("https://reviodigital.uk/dashboard?google=connected")
 
 
 @router.get("/status")
@@ -155,7 +155,7 @@ async def fetch_reviews(
         raise HTTPException(status_code=400, detail="No location selected — call /select-location first")
     try:
         token = await refresh_access_token(tenant, db)
-        reviews = await get_reviews(token, tenant.google_account_id, tenant.google_location_id)
+        reviews = await get_reviews(token, tenant.google_location_id)
         return {"reviews": reviews, "count": len(reviews)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -179,7 +179,7 @@ async def reply_to_review(
         raise HTTPException(status_code=400, detail="reply field required")
     try:
         token = await refresh_access_token(tenant, db)
-        result = await post_reply(token, tenant.google_account_id, tenant.google_location_id, review_id, reply_text)
+        result = await post_reply(token, tenant.google_location_id, review_id, reply_text)
         return {"message": "Reply posted", "result": result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
