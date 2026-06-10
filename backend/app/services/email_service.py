@@ -28,7 +28,7 @@ def send_flagged_review_alert(to_email: str, reviewer_name: str, rating: int, re
     <p><strong>Reviewer:</strong> {reviewer_name}</p>
     <p><strong>Rating:</strong> {rating}/5</p>
     <p><strong>Review:</strong> {review_text}</p>
-    <p><a href="https://revio-42f3.vercel.app/dashboard" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View Dashboard →</a></p>
+    <p><a href="https://reviodigital.uk/dashboard" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View Dashboard →</a></p>
     """
     return send_email(to_email, subject, html)
 
@@ -42,6 +42,17 @@ def send_reply_posted_notification(to_email: str, reviewer_name: str, reply_text
     """
     return send_email(to_email, subject, html)
 
+def send_new_signup_notification(business_name: str, business_email: str):
+    subject = f"🎉 New Revio signup — {business_name}"
+    html = f"""
+    <h2>New customer signed up</h2>
+    <p><strong>Business:</strong> {business_name}</p>
+    <p><strong>Email:</strong> {business_email}</p>
+    <p>Log in to the admin panel to view all customers.</p>
+    <p><a href="https://reviodigital.uk/admin" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View Admin →</a></p>
+    """
+    return send_email("guppa2026@gmail.com", subject, html)
+
 def send_approval_needed(to_email: str, reviewer_name: str, rating: int, review_text: str, reply_text: str):
     subject = f"👀 Review Needs Your Approval — {rating}★ from {reviewer_name}"
     html = f"""
@@ -52,6 +63,6 @@ def send_approval_needed(to_email: str, reviewer_name: str, rating: int, review_
     <hr>
     <p><strong>Suggested reply:</strong></p>
     <blockquote>{reply_text}</blockquote>
-    <p><a href="https://revio-42f3.vercel.app/dashboard" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View Dashboard →</a></p>
+    <p><a href="https://reviodigital.uk/dashboard" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View Dashboard →</a></p>
     """
     return send_email(to_email, subject, html)
