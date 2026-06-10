@@ -109,7 +109,7 @@ export default function HomePage() {
       <style>{css}</style>
       <div className="shell">
         <nav className="nav">
-          <div className="nav-logo"><img src="/reviologo.png" alt="Revio" style={{height:'32px',width:'auto'}} /></div>
+          <div className="nav-logo"><span className="nav-dot" />Revio</div>
           <div className="nav-links">
             <a className="nav-login" href="/login">Log in</a>
             <a className="nav-cta" href={primaryHref}>{primaryLabel}</a>
@@ -211,7 +211,7 @@ export default function HomePage() {
 
         <footer className="wrap">
           <div className="footer">
-            <div className="footer-brand"><img src="/reviologo.png" alt="Revio" style={{height:'24px',width:'auto'}} /></div>
+            <div className="footer-brand"><span className="nav-dot" />Revio</div>
             <div className="footer-copy">© 2026 Revio · AI review management for UK businesses</div>
           </div>
         </footer>

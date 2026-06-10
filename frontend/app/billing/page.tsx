@@ -117,7 +117,8 @@ export default function BillingPage() {
       <div className="shell">
         <nav className="nav">
           <div className="nav-logo" onClick={() => router.push('/dashboard')}>
-            <img src="/reviologo.png" alt="Revio" style={{height:'32px',width:'auto'}} />
+            <div className="nav-dot" />
+            Revio
           </div>
           <button className="nav-signout" onClick={() => { localStorage.removeItem('token'); router.push('/login') }}>
             Sign out

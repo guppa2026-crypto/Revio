@@ -199,7 +199,8 @@ export default function DashboardPage() {
       <div className="shell">
         <nav className="nav">
           <div className="nav-logo">
-            <img src="/reviologo.png" alt="Revio" style={{height:'32px',width:'auto'}} />
+            <div className="nav-dot" />
+            Revio
           </div>
           <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
             <button onClick={handleGoogleConnect} style={{fontSize:'13px',color:'#444',border:'1px solid #ECEAE4',background:'#fff',cursor:'pointer',padding:'6px 12px',borderRadius:'6px'}}>Connect Google</button>
