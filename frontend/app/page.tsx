@@ -212,7 +212,7 @@ export default function HomePage() {
         <footer className="wrap">
           <div className="footer">
             <div className="footer-brand"><span className="nav-dot" />Revio</div>
-            <div className="footer-copy">© 2026 Revio · AI review management for UK businesses · <a href="/legal" style={{color:'#9E9B93',textDecoration:'underline'}}>Terms &amp; Privacy</a></div>
+            <div className="footer-copy">© 2026 Revio · AI review management for UK businesses · <a href="/legal" style={{color:'#9E9B93',textDecoration:'underline'}}>Terms &amp; Privacy</a> · <a href="/contact" style={{color:'#9E9B93',textDecoration:'underline'}}>Contact</a></div>
           </div>
         </footer>
       </div>

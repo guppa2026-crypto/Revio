@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Optional
 from uuid import UUID
+from pydantic import BaseModel
 from app.database import get_db
 from app.models.review import Review
 from app.models.user import User
@@ -102,6 +103,33 @@ def reject_reply(
     db.refresh(review)
     return {"message": "Reply rejected", "review_id": str(review.id)}
 
+
+class ManualReviewInput(BaseModel):
+    reviewer_name: str
+    rating: int
+    review_text: str
+
+@router.post("/import")
+def import_review(
+    data: ManualReviewInput,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    tenant: Tenant = Depends(require_subscription)
+):
+    if data.rating < 1 or data.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+    review = Review(
+        tenant_id=current_user.tenant_id,
+        google_review_id=f"manual_{uuid.uuid4()}",
+        reviewer_name=data.reviewer_name,
+        rating=data.rating,
+        review_text=data.review_text,
+        review_date=datetime.utcnow()
+    )
+    db.add(review)
+    db.flush()
+    processed = process_review(review, db, tenant.name)
+    return processed
 
 @router.post("/test-process")
 def test_process_review(

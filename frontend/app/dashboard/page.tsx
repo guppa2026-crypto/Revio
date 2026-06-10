@@ -78,23 +78,86 @@ export default function DashboardPage() {
   const [editing, setEditing] = useState<Record<string, string>>({})
   const [approving, setApproving] = useState<string | null>(null)
 
-  useEffect(() => { fetchReviews() }, [])
+  // Location picker
+  const [showLocationPicker, setShowLocationPicker] = useState(false)
+  const [accounts, setAccounts] = useState<any[]>([])
+  const [selectedAccount, setSelectedAccount] = useState('')
+  const [locations, setLocations] = useState<any[]>([])
+  const [selectedLocation, setSelectedLocation] = useState('')
+  const [loadingLocations, setLoadingLocations] = useState(false)
+  const [savingLocation, setSavingLocation] = useState(false)
+  const [locationSaved, setLocationSaved] = useState(false)
+
+  // Manual import
+  const [showImport, setShowImport] = useState(false)
+  const [importName, setImportName] = useState('')
+  const [importRating, setImportRating] = useState(5)
+  const [importText, setImportText] = useState('')
+  const [importLoading, setImportLoading] = useState(false)
+  const [importError, setImportError] = useState('')
+
+  useEffect(() => {
+    fetchReviews()
+    if (typeof window !== 'undefined' && window.location.search.includes('google=connected')) {
+      setShowLocationPicker(true)
+      loadAccounts()
+    }
+  }, [])
 
   const fetchReviews = async () => {
     try {
       const res = await api.get('/reviews/')
       setReviews(res.data.reviews || res.data)
     } catch (err: any) {
-      // 401 is handled by the api interceptor (clears token + redirects).
-      // 403 = authenticated but no active subscription -> show paywall, do NOT log out.
       if (err.response?.status === 403) {
         setLocked(true)
       } else if (err.response?.status !== 401) {
-        // any other error: stop spinner, leave them on the page
         setLocked(false)
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadAccounts = async () => {
+    try {
+      const res = await api.get('/google/accounts')
+      setAccounts(res.data.accounts || [])
+    } catch {
+      setAccounts([])
+    }
+  }
+
+  const handleAccountChange = async (accountId: string) => {
+    setSelectedAccount(accountId)
+    setSelectedLocation('')
+    setLocations([])
+    if (!accountId) return
+    setLoadingLocations(true)
+    try {
+      const res = await api.get(`/google/locations/${accountId}`)
+      setLocations(res.data.locations || [])
+    } catch {
+      setLocations([])
+    } finally {
+      setLoadingLocations(false)
+    }
+  }
+
+  const handleSaveLocation = async () => {
+    if (!selectedAccount || !selectedLocation) return
+    setSavingLocation(true)
+    try {
+      await api.post('/google/select-location', { account_id: selectedAccount, location_id: selectedLocation })
+      setLocationSaved(true)
+      setTimeout(() => {
+        setShowLocationPicker(false)
+        window.history.replaceState({}, '', '/dashboard')
+      }, 1500)
+    } catch {
+      alert('Failed to save location. Please try again.')
+    } finally {
+      setSavingLocation(false)
     }
   }
 
@@ -119,6 +182,24 @@ export default function DashboardPage() {
       window.location.href = res.data.auth_url
     } catch {
       alert('Failed to start Google connection.')
+    }
+  }
+
+  const handleImport = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setImportLoading(true)
+    setImportError('')
+    try {
+      await api.post('/reviews/import', { reviewer_name: importName, rating: importRating, review_text: importText })
+      setShowImport(false)
+      setImportName('')
+      setImportRating(5)
+      setImportText('')
+      await fetchReviews()
+    } catch (err: any) {
+      setImportError(err.response?.data?.detail || 'Failed to import review.')
+    } finally {
+      setImportLoading(false)
     }
   }
 
@@ -184,13 +265,40 @@ export default function DashboardPage() {
     .btn-approve:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-edit { background: #fff; color: #444; border-color: #ECEAE4; }
     .btn-reject { background: #fff; color: #A32D2D; border-color: #F7C1C1; }
+    .btn-import { background: #fff; color: #444; border: 1px solid #ECEAE4; font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+    .btn-import:hover { background: #F7F6F3; }
     .empty { background: #fff; border: 1px solid #ECEAE4; border-radius: 14px; padding: 4rem; text-align: center; color: #B0ADA5; font-size: 14px; }
     .loading { text-align: center; padding: 4rem; color: #B0ADA5; font-size: 14px; }
     .paywall { background: #fff; border: 1px solid #ECEAE4; border-radius: 14px; padding: 3.5rem 2rem; text-align: center; }
     .paywall-title { font-size: 20px; font-weight: 600; color: #1A1916; margin-bottom: 8px; }
     .paywall-text { font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 20px; max-width: 380px; margin-left: auto; margin-right: auto; }
     .paywall-btn { font-size: 14px; font-weight: 500; padding: 9px 22px; border-radius: 8px; cursor: pointer; border: none; background: #1A1916; color: #fff; }
-    @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } .page { padding: 1rem; } }
+    .location-banner { background: #fff; border: 1px solid #E0DCFA; border-left: 3px solid #7F77DD; border-radius: 14px; padding: 20px 24px; margin-bottom: 2rem; }
+    .location-banner-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .location-banner-sub { font-size: 13px; color: #9E9B93; margin-bottom: 16px; }
+    .location-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .location-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
+    .location-field label { font-size: 12px; font-weight: 500; color: #5F5E5A; }
+    .location-field select { font-size: 13px; color: #1A1916; background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 8px; padding: 8px 10px; font-family: inherit; outline: none; cursor: pointer; }
+    .location-field select:focus { border-color: #7F77DD; }
+    .btn-save-loc { font-size: 13px; font-weight: 500; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: none; background: #1A1916; color: #fff; font-family: inherit; white-space: nowrap; }
+    .btn-save-loc:disabled { opacity: 0.5; cursor: not-allowed; }
+    .location-saved { font-size: 13px; color: #3B6D11; font-weight: 500; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(26,25,22,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+    .modal { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(26,25,22,0.2); }
+    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+    .modal-sub { font-size: 13px; color: #9E9B93; margin-bottom: 20px; }
+    .modal-field { margin-bottom: 14px; }
+    .modal-field label { display: block; font-size: 13px; font-weight: 500; color: #5F5E5A; margin-bottom: 6px; }
+    .modal-field input, .modal-field textarea { width: 100%; font-size: 14px; color: #1A1916; background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 8px; padding: 10px 12px; font-family: inherit; outline: none; resize: vertical; }
+    .modal-field input:focus, .modal-field textarea:focus { border-color: #7F77DD; background: #fff; }
+    .modal-field textarea { min-height: 100px; }
+    .star-picker { display: flex; gap: 6px; }
+    .star-btn { font-size: 22px; background: none; border: none; cursor: pointer; padding: 0; line-height: 1; opacity: 0.3; transition: opacity 0.1s; }
+    .star-btn.active { opacity: 1; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 6px; }
+    .modal-error { font-size: 13px; color: #A32D2D; background: #FCEBEB; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
+    @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } .page { padding: 1rem; } .location-row { flex-direction: column; } }
   `
 
   return (
@@ -221,6 +329,40 @@ export default function DashboardPage() {
             </div>
           ) : (
           <>
+          {showLocationPicker && (
+            <div className="location-banner">
+              <div className="location-banner-title">Select your business location</div>
+              <div className="location-banner-sub">Choose which Google Business Profile location Revio should manage.</div>
+              {locationSaved ? (
+                <div className="location-saved">✓ Location saved — reviews will start syncing shortly.</div>
+              ) : (
+                <div className="location-row">
+                  <div className="location-field">
+                    <label>Account</label>
+                    <select value={selectedAccount} onChange={e => handleAccountChange(e.target.value)}>
+                      <option value="">Select account…</option>
+                      {accounts.map((a: any) => (
+                        <option key={a.name} value={a.name}>{a.accountName || a.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="location-field">
+                    <label>Location</label>
+                    <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} disabled={!locations.length}>
+                      <option value="">{loadingLocations ? 'Loading…' : 'Select location…'}</option>
+                      {locations.map((l: any) => (
+                        <option key={l.name} value={l.name}>{l.title || l.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button className="btn-save-loc" onClick={handleSaveLocation} disabled={!selectedAccount || !selectedLocation || savingLocation}>
+                    {savingLocation ? 'Saving…' : 'Save location'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="stats">
             <div className="stat">
               <div className="stat-label">Total reviews</div>
@@ -245,13 +387,15 @@ export default function DashboardPage() {
           <RatingGoal rating={stats.avgRating} count={stats.total} />
           <ReviewCalculator />
 
-          <div className="toolbar"></div>
           <div className="toolbar">
             <span className="toolbar-title">Reviews</span>
-            <div className="filters">
-              {FILTERS.map(f => (
-                <button key={f} className={'filter-btn' + (filter === f ? ' active' : '')} onClick={() => setFilter(f)}>{f}</button>
-              ))}
+            <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}}>
+              <button className="btn-import" onClick={() => setShowImport(true)}>+ Add review manually</button>
+              <div className="filters">
+                {FILTERS.map(f => (
+                  <button key={f} className={'filter-btn' + (filter === f ? ' active' : '')} onClick={() => setFilter(f)}>{f}</button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -323,6 +467,40 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {showImport && (
+        <div className="modal-overlay" onClick={() => setShowImport(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">Add review manually</div>
+            <div className="modal-sub">Paste in a review to generate an AI reply draft.</div>
+            <form onSubmit={handleImport}>
+              {importError && <div className="modal-error">{importError}</div>}
+              <div className="modal-field">
+                <label>Reviewer name</label>
+                <input type="text" value={importName} onChange={e => setImportName(e.target.value)} required placeholder="e.g. Sarah M." />
+              </div>
+              <div className="modal-field">
+                <label>Rating</label>
+                <div className="star-picker">
+                  {[1,2,3,4,5].map(n => (
+                    <button key={n} type="button" className={'star-btn' + (n <= importRating ? ' active' : '')} onClick={() => setImportRating(n)}>★</button>
+                  ))}
+                </div>
+              </div>
+              <div className="modal-field">
+                <label>Review text</label>
+                <textarea value={importText} onChange={e => setImportText(e.target.value)} required placeholder="Paste the review here…" />
+              </div>
+              <div className="modal-actions">
+                <button className="btn btn-approve" type="submit" disabled={importLoading}>
+                  {importLoading ? 'Processing…' : 'Import & generate reply'}
+                </button>
+                <button className="btn btn-edit" type="button" onClick={() => setShowImport(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   )
 }
