@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GMB_BASE = "https://mybusinessaccountmanagement.googleapis.com/v1"
-REVIEWS_BASE = "https://mybusinessreviews.googleapis.com/v1"
+REVIEWS_BASE = "https://mybusiness.googleapis.com/v4"
 
 
 async def refresh_access_token(tenant: Tenant, db: Session) -> str:
@@ -66,11 +66,11 @@ async def get_locations(access_token: str, account_id: str) -> list:
     return data.get("locations", [])
 
 
-async def get_reviews(access_token: str, location_id: str) -> list:
+async def get_reviews(access_token: str, account_id: str, location_id: str) -> list:
     """Fetch all reviews for a given location."""
     async with httpx.AsyncClient() as client:
         res = await client.get(
-            f"{REVIEWS_BASE}/{location_id}/reviews",
+            f"{REVIEWS_BASE}/{account_id}/{location_id}/reviews",
             headers={"Authorization": f"Bearer {access_token}"},
             params={"pageSize": 50}
         )
@@ -80,11 +80,11 @@ async def get_reviews(access_token: str, location_id: str) -> list:
     return data.get("reviews", [])
 
 
-async def post_reply(access_token: str, location_id: str, review_id: str, reply_text: str) -> dict:
+async def post_reply(access_token: str, account_id: str, location_id: str, review_id: str, reply_text: str) -> dict:
     """Post a reply to a Google review."""
     async with httpx.AsyncClient() as client:
         res = await client.put(
-            f"{REVIEWS_BASE}/{location_id}/reviews/{review_id}/reply",
+            f"{REVIEWS_BASE}/{account_id}/{location_id}/reviews/{review_id}/reply",
             headers={
                 "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json"
