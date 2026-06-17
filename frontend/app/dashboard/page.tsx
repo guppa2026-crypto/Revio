@@ -533,16 +533,17 @@ export default function DashboardPage() {
                               </div>
                             )}
 
-                            {review.status === 'flagged' ? (
+                            {review.status === 'flagged' && (
                               <div className="flagged-notice">
                                 <AlertTriangle size={15} />
-                                Flagged — respond to this one personally, do not auto-reply.
+                                High risk — review the draft carefully and edit before posting. You have also been emailed.
                               </div>
-                            ) : replyText ? (
+                            )}
+                            {replyText ? (
                               <div className="reply-section">
                                 <div className="reply-header">
                                   <span className="reply-tag">AI Draft</span>
-                                  {(review.status === 'pending' || review.status === 'scheduled') && (
+                                  {(review.status === 'pending' || review.status === 'scheduled' || review.status === 'flagged') && (
                                     <button className="reply-edit-btn" onClick={() => isEditing
                                       ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
                                       : setEditing(e => ({ ...e, [review.id]: review.generated_reply }))
@@ -556,7 +557,7 @@ export default function DashboardPage() {
                               </div>
                             ) : null}
 
-                            {review.status === 'pending' && (
+                            {(review.status === 'pending' || review.status === 'flagged') && (
                               <div className="review-actions">
                                 <button className="btn-approve" disabled={approving === review.id} onClick={() => handleApprove(review.id)}>
                                   {approving === review.id ? 'Posting…' : 'Approve & post'}
