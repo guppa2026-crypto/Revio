@@ -1,9 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Star, Clock, CheckCheck, CreditCard, Settings, LogOut, Plus, AlertTriangle, LayoutDashboard, RefreshCw, X } from 'lucide-react'
 import api from '@/lib/api'
 import RatingGoal from '@/components/RatingGoal'
-import ReviewCalculator from '@/components/ReviewCalculator'
 
 type Review = {
   id: string
@@ -16,57 +16,44 @@ type Review = {
   generated_reply: string
   created_at: string
 }
-type Stats = {
-  total: number
-  avgRating: number
-  pendingCount: number
-  autoReplied: number
-}
-
-function RiskBadge({ risk }: { risk: string }) {
-  const styles: Record<string, string> = {
-    low: 'badge badge-low',
-    medium: 'badge badge-med',
-    high: 'badge badge-high',
-  }
-  return <span className={styles[risk] ?? 'badge badge-low'}>{risk} risk</span>
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    pending: 'badge badge-pending',
-    approved: 'badge badge-approved',
-    posted: 'badge badge-posted',
-    rejected: 'badge badge-rejected',
-    flagged: 'badge badge-high',
-  }
-  return <span className={styles[status] ?? 'badge badge-pending'}>{status}</span>
-}
 
 function initials(name: string) {
   return name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
 const AVATAR_COLORS = [
-  { bg: '#E6F1FB', color: '#185FA5' },
-  { bg: '#E1F5EE', color: '#0F6E56' },
-  { bg: '#FAEEDA', color: '#854F0B' },
-  { bg: '#EEEDFE', color: '#534AB7' },
-  { bg: '#FAECE7', color: '#993C1D' },
+  { bg: '#EEF2FF', color: '#4F46E5' },
+  { bg: '#F0FDF4', color: '#16A34A' },
+  { bg: '#FFF7ED', color: '#C2410C' },
+  { bg: '#FDF4FF', color: '#9333EA' },
+  { bg: '#FFF1F2', color: '#BE123C' },
 ]
 
 function avatarColor(name: string) {
-  const i = name.charCodeAt(0) % AVATAR_COLORS.length
-  return AVATAR_COLORS[i]
+  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
 }
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 60) return mins + 'm ago'
+  if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return hrs + 'h ago'
-  return Math.floor(hrs / 24) + 'd ago'
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+const RISK_BORDER: Record<string, string> = {
+  low: '#22C55E',
+  medium: '#F59E0B',
+  high: '#EF4444',
+}
+
+const STATUS_PILL: Record<string, { bg: string; color: string; label: string }> = {
+  pending:  { bg: '#FEF3C7', color: '#92400E', label: 'Pending' },
+  approved: { bg: '#DCFCE7', color: '#166534', label: 'Approved' },
+  posted:   { bg: '#DBEAFE', color: '#1E40AF', label: 'Posted' },
+  rejected: { bg: '#F1F5F9', color: '#475569', label: 'Rejected' },
+  flagged:  { bg: '#FEE2E2', color: '#991B1B', label: 'Flagged' },
 }
 
 export default function DashboardPage() {
@@ -77,6 +64,7 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState('all')
   const [editing, setEditing] = useState<Record<string, string>>({})
   const [approving, setApproving] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Location picker
   const [showLocationPicker, setShowLocationPicker] = useState(false)
@@ -104,18 +92,16 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const fetchReviews = async () => {
+  const fetchReviews = async (showRefresh = false) => {
+    if (showRefresh) setRefreshing(true)
     try {
       const res = await api.get('/reviews/')
       setReviews(res.data.reviews || res.data)
     } catch (err: any) {
-      if (err.response?.status === 403) {
-        setLocked(true)
-      } else if (err.response?.status !== 401) {
-        setLocked(false)
-      }
+      if (err.response?.status === 403) setLocked(true)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
@@ -123,9 +109,7 @@ export default function DashboardPage() {
     try {
       const res = await api.get('/google/accounts')
       setAccounts(res.data.accounts || [])
-    } catch {
-      setAccounts([])
-    }
+    } catch { setAccounts([]) }
   }
 
   const handleAccountChange = async (accountId: string) => {
@@ -137,11 +121,8 @@ export default function DashboardPage() {
     try {
       const res = await api.get(`/google/locations/${accountId}`)
       setLocations(res.data.locations || [])
-    } catch {
-      setLocations([])
-    } finally {
-      setLoadingLocations(false)
-    }
+    } catch { setLocations([]) }
+    finally { setLoadingLocations(false) }
   }
 
   const handleSaveLocation = async () => {
@@ -150,25 +131,15 @@ export default function DashboardPage() {
     try {
       await api.post('/google/select-location', { account_id: selectedAccount, location_id: selectedLocation })
       setLocationSaved(true)
-      setTimeout(() => {
-        setShowLocationPicker(false)
-        window.history.replaceState({}, '', '/dashboard')
-      }, 1500)
-    } catch {
-      alert('Failed to save location. Please try again.')
-    } finally {
-      setSavingLocation(false)
-    }
+      setTimeout(() => { setShowLocationPicker(false); window.history.replaceState({}, '', '/dashboard') }, 1500)
+    } catch { alert('Failed to save location. Please try again.') }
+    finally { setSavingLocation(false) }
   }
 
   const handleApprove = async (id: string) => {
     setApproving(id)
-    try {
-      await api.post('/reviews/' + id + '/approve')
-      await fetchReviews()
-    } finally {
-      setApproving(null)
-    }
+    try { await api.post('/reviews/' + id + '/approve'); await fetchReviews() }
+    finally { setApproving(null) }
   }
 
   const handleReject = async (id: string) => {
@@ -177,12 +148,8 @@ export default function DashboardPage() {
   }
 
   const handleGoogleConnect = async () => {
-    try {
-      const res = await api.get('/google/connect')
-      window.location.href = res.data.auth_url
-    } catch {
-      alert('Failed to start Google connection.')
-    }
+    try { const res = await api.get('/google/connect'); window.location.href = res.data.auth_url }
+    catch { alert('Failed to start Google connection.') }
   }
 
   const handleImport = async (e: React.FormEvent) => {
@@ -191,364 +158,422 @@ export default function DashboardPage() {
     setImportError('')
     try {
       await api.post('/reviews/import', { reviewer_name: importName, rating: importRating, review_text: importText })
-      setShowImport(false)
-      setImportName('')
-      setImportRating(5)
-      setImportText('')
+      setShowImport(false); setImportName(''); setImportRating(5); setImportText('')
       await fetchReviews()
     } catch (err: any) {
       setImportError(err.response?.data?.detail || 'Failed to import review.')
-    } finally {
-      setImportLoading(false)
-    }
+    } finally { setImportLoading(false) }
   }
 
   const filtered = filter === 'all' ? reviews : reviews.filter((r: Review) => r.status === filter)
-
-  const stats: Stats = {
-    total: reviews.length,
-    avgRating: reviews.length ? Math.round((reviews.reduce((s: number, r: Review) => s + r.rating, 0) / reviews.length) * 10) / 10 : 0,
-    pendingCount: reviews.filter((r: Review) => r.status === 'pending').length,
-    autoReplied: reviews.filter((r: Review) => r.status === 'posted').length,
-  }
-
-  const FILTERS = ['all', 'pending', 'flagged', 'approved', 'posted']
+  const avgRating = reviews.length ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10 : 0
+  const pendingCount = reviews.filter(r => r.status === 'pending').length
+  const postedCount = reviews.filter(r => r.status === 'posted').length
 
   const css = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #F2F1EE; }
-    .shell { min-height: 100vh; background: #F2F1EE; font-family: system-ui, -apple-system, sans-serif; }
+    html, body { height: 100%; }
+    .layout { display: flex; min-height: 100vh; background: #F5F4F1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
-    /* NAV */
-    .nav { background: #1A1916; padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 0 rgba(255,255,255,0.06); }
-    .nav-logo { font-size: 17px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 9px; }
-    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, #A89CF5, #7F77DD); box-shadow: 0 0 0 3px rgba(127,119,221,0.3); }
-    .nav-actions { display: flex; align-items: center; gap: 6px; }
-    .nav-btn { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65); border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); cursor: pointer; padding: 6px 13px; border-radius: 7px; font-family: inherit; transition: background 0.15s, color 0.15s; }
-    .nav-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
-    .nav-signout { font-size: 13px; color: rgba(255,255,255,0.4); border: none; background: none; cursor: pointer; padding: 6px 10px; border-radius: 6px; font-family: inherit; }
-    .nav-signout:hover { color: rgba(255,255,255,0.7); }
+    /* SIDEBAR */
+    .sidebar { width: 228px; background: #0F0F0E; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 20; border-right: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-logo { padding: 22px 20px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 8px; }
+    .logo-mark { width: 28px; height: 28px; background: linear-gradient(135deg, #7F77DD, #5B52CC); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-mark svg { color: #fff; }
+    .logo-name { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
+    .sidebar-nav { flex: 1; padding: 4px 10px; display: flex; flex-direction: column; gap: 2px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.5); cursor: pointer; border: none; background: none; font-family: inherit; text-decoration: none; transition: background 0.15s, color 0.15s; width: 100%; text-align: left; }
+    .nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
+    .nav-item.active { background: rgba(127,119,221,0.18); color: #A89CF5; }
+    .nav-item.active svg { color: #A89CF5; }
+    .nav-item svg { flex-shrink: 0; }
+    .nav-section { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.22); padding: 16px 12px 6px; }
+    .sidebar-bottom { padding: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .nav-signout { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.35); cursor: pointer; border: none; background: none; font-family: inherit; width: 100%; transition: color 0.15s; }
+    .nav-signout:hover { color: rgba(255,255,255,0.6); }
 
-    /* PAGE */
-    .page { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+    /* MAIN */
+    .main { margin-left: 228px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
 
-    /* STATS */
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.75rem; }
-    .stat { background: #fff; border: 1px solid #E8E6E0; border-radius: 14px; padding: 18px 20px; position: relative; overflow: hidden; transition: box-shadow 0.2s; }
-    .stat:hover { box-shadow: 0 4px 16px rgba(26,25,22,0.08); }
-    .stat-icon { font-size: 18px; margin-bottom: 12px; opacity: 0.8; }
-    .stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #A8A49C; margin-bottom: 6px; }
-    .stat-value { font-size: 30px; font-weight: 700; color: #1A1916; line-height: 1; letter-spacing: -0.02em; }
-    .stat-sub { font-size: 12px; color: #C0BCB4; margin-top: 6px; }
-    .stat-rating { background: linear-gradient(135deg, #EFEDFB 0%, #E6E3FA 100%); border-color: #D8D4F5; }
-    .stat-rating .stat-value { background: linear-gradient(120deg, #7F77DD, #B3A0F2); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .stat-pending { border-color: #F5E4C0; background: #FFFBF2; }
-    .stat-pending .stat-value { color: #B07A12; }
+    /* TOPBAR */
+    .topbar { background: #F5F4F1; border-bottom: 1px solid #E5E3DC; padding: 0 28px; height: 58px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .topbar-title { font-size: 16px; font-weight: 700; color: #1A1916; letter-spacing: -0.01em; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-ghost { font-size: 13px; font-weight: 500; color: #6B6963; border: 1px solid #E0DED7; background: #fff; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: border-color 0.15s, color 0.15s; }
+    .btn-ghost:hover { border-color: #C9C5BC; color: #1A1916; }
+    .btn-primary { font-size: 13px; font-weight: 600; color: #fff; background: #1A1916; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
+    .btn-primary:hover { background: #2D2D2A; }
 
-    /* TOOLBAR */
-    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .section-title { font-size: 14px; font-weight: 600; color: #1A1916; }
-    .toolbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .filters { display: flex; gap: 5px; flex-wrap: wrap; }
-    .filter-btn { font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 99px; border: 1px solid #E8E6E0; background: #fff; color: #9E9B93; cursor: pointer; text-transform: capitalize; transition: all 0.15s; }
-    .filter-btn:hover { border-color: #C9C5BC; color: #555; }
-    .filter-btn.active { background: #1A1916; color: #fff; border-color: #1A1916; }
-    .btn-import { background: linear-gradient(135deg, #7F77DD, #6A61C9); color: #fff; border: none; font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; transition: opacity 0.15s; white-space: nowrap; }
-    .btn-import:hover { opacity: 0.88; }
+    /* CONTENT */
+    .content { padding: 24px 28px; flex: 1; }
 
-    /* REVIEW CARDS */
-    .reviews { display: flex; flex-direction: column; gap: 10px; }
-    .card { background: #fff; border: 1px solid #E8E6E0; border-radius: 16px; padding: 20px 22px; transition: box-shadow 0.2s; }
-    .card:hover { box-shadow: 0 4px 20px rgba(26,25,22,0.07); }
-    .card-flagged { border-color: #F2C4C4; background: linear-gradient(135deg, #FFFAFA, #FFF5F5); }
-    .card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
-    .reviewer { display: flex; align-items: center; gap: 11px; }
-    .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-    .reviewer-name { font-size: 14px; font-weight: 600; color: #1A1916; }
-    .reviewer-meta { font-size: 12px; color: #B8B4AC; margin-top: 2px; }
-    .badges { display: flex; gap: 5px; align-items: center; }
-    .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; letter-spacing: 0.02em; }
-    .badge-low { background: #E8F4DC; color: #3A6B10; }
-    .badge-med { background: #FDE8C8; color: #8A5010; }
-    .badge-high { background: #FCE8E8; color: #A32D2D; }
-    .badge-pending { background: #FDE8C8; color: #8A5010; }
-    .badge-approved { background: #E8F4DC; color: #3A6B10; }
-    .badge-posted { background: #DCEcFB; color: #1A5FA5; }
-    .badge-rejected { background: #EFEDE7; color: #5F5E5A; }
-    .stars { color: #F0A020; font-size: 15px; margin-bottom: 10px; letter-spacing: 1px; }
-    .review-text { font-size: 14px; color: #4A4844; line-height: 1.65; margin-bottom: 16px; }
-    .reply-box { background: linear-gradient(135deg, #F7F6F3, #F3F1FC); border-radius: 11px; padding: 14px 16px; margin-bottom: 16px; border-left: 3px solid #7F77DD; }
-    .reply-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #A8A49C; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
-    .reply-label-pill { background: #EFEDFB; color: #6A61C9; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; }
-    .reply-label span { color: #7F77DD; cursor: pointer; font-size: 11px; font-weight: 500; text-transform: none; letter-spacing: 0; }
-    .reply-text { font-size: 13px; color: #2C2C2A; line-height: 1.7; }
-    .reply-edit { width: 100%; font-size: 13px; color: #2C2C2A; line-height: 1.65; background: #fff; border: 1px solid #C8C4BC; border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 80px; font-family: inherit; outline: none; }
-    .reply-edit:focus { border-color: #7F77DD; }
-    .flagged-banner { background: #FCE8E8; border: 1px solid #F2C4C4; border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #A32D2D; font-weight: 500; }
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .btn { font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 9px; cursor: pointer; border: 1px solid transparent; font-family: inherit; transition: all 0.15s; }
-    .btn-approve { background: #1A1916; color: #fff; border-color: #1A1916; }
-    .btn-approve:hover { background: #333; }
-    .btn-approve:disabled { opacity: 0.45; cursor: not-allowed; }
-    .btn-edit { background: #fff; color: #555; border-color: #E8E6E0; }
-    .btn-edit:hover { border-color: #C9C5BC; }
-    .btn-reject { background: #fff; color: #A32D2D; border-color: #F2C4C4; }
-    .btn-reject:hover { background: #FFF5F5; }
-
-    /* EMPTY / LOADING */
-    .empty { background: #fff; border: 1px solid #E8E6E0; border-radius: 16px; padding: 5rem 2rem; text-align: center; }
-    .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
-    .empty-title { font-size: 15px; font-weight: 600; color: #9E9B93; margin-bottom: 6px; }
-    .empty-sub { font-size: 13px; color: #C0BCB4; }
-    .loading { text-align: center; padding: 4rem; color: #B0ADA5; font-size: 14px; }
+    /* STATS STRIP */
+    .stats-strip { background: #fff; border: 1px solid #E5E3DC; border-radius: 14px; display: flex; margin-bottom: 20px; overflow: hidden; }
+    .metric { flex: 1; padding: 20px 24px; position: relative; }
+    .metric + .metric::before { content: ''; position: absolute; left: 0; top: 20%; height: 60%; width: 1px; background: #E5E3DC; }
+    .metric-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #A8A49C; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .metric-value { font-size: 32px; font-weight: 700; color: #1A1916; letter-spacing: -0.03em; line-height: 1; }
+    .metric-value.purple { color: #6B63D4; }
+    .metric-value.amber { color: #B45309; }
+    .metric-sub { font-size: 12px; color: #B8B4AC; margin-top: 6px; }
 
     /* PAYWALL */
-    .paywall { background: #fff; border: 1px solid #E8E6E0; border-radius: 18px; padding: 4rem 2rem; text-align: center; position: relative; overflow: hidden; }
-    .paywall::before { content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 400px; height: 300px; background: radial-gradient(ellipse at center, rgba(127,119,221,0.12), transparent 70%); pointer-events: none; }
-    .paywall-title { font-size: 22px; font-weight: 700; color: #1A1916; margin-bottom: 8px; position: relative; }
-    .paywall-text { font-size: 14px; color: #888; line-height: 1.65; margin-bottom: 24px; max-width: 380px; margin-left: auto; margin-right: auto; position: relative; }
-    .paywall-btn { font-size: 14px; font-weight: 600; padding: 11px 28px; border-radius: 10px; cursor: pointer; border: none; background: linear-gradient(135deg, #1A1916, #2A2540); color: #fff; position: relative; transition: opacity 0.15s; box-shadow: 0 4px 14px rgba(26,25,22,0.2); }
-    .paywall-btn:hover { opacity: 0.88; }
+    .paywall { background: #fff; border: 1px solid #E5E3DC; border-radius: 16px; padding: 5rem 2rem; text-align: center; }
+    .paywall h2 { font-size: 20px; font-weight: 700; color: #1A1916; margin-bottom: 8px; }
+    .paywall p { font-size: 14px; color: #8A8780; line-height: 1.65; margin-bottom: 24px; max-width: 360px; margin-left: auto; margin-right: auto; }
+    .paywall-btn { font-size: 14px; font-weight: 600; padding: 10px 26px; border-radius: 9px; cursor: pointer; border: none; background: #1A1916; color: #fff; }
 
     /* LOCATION PICKER */
-    .location-banner { background: #fff; border: 1px solid #DDD9F8; border-radius: 16px; padding: 22px 26px; margin-bottom: 1.75rem; box-shadow: 0 2px 12px rgba(127,119,221,0.1); }
-    .location-banner-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: #1A1916; }
-    .location-banner-sub { font-size: 13px; color: #9E9B93; margin-bottom: 18px; }
-    .location-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
-    .location-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
-    .location-field label { font-size: 12px; font-weight: 600; color: #5F5E5A; }
-    .location-field select { font-size: 13px; color: #1A1916; background: #F7F6F3; border: 1px solid #E8E6E0; border-radius: 9px; padding: 9px 11px; font-family: inherit; outline: none; cursor: pointer; }
-    .location-field select:focus { border-color: #7F77DD; }
-    .btn-save-loc { font-size: 13px; font-weight: 600; padding: 9px 20px; border-radius: 9px; cursor: pointer; border: none; background: #1A1916; color: #fff; font-family: inherit; white-space: nowrap; transition: background 0.15s; }
-    .btn-save-loc:hover { background: #333; }
+    .location-bar { background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .location-bar-text { flex: 1; }
+    .location-bar-title { font-size: 14px; font-weight: 600; color: #1A1916; margin-bottom: 2px; }
+    .location-bar-sub { font-size: 12px; color: #6B6963; }
+    .location-selects { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .loc-select { font-size: 13px; color: #1A1916; background: #fff; border: 1px solid #E0DED7; border-radius: 8px; padding: 7px 10px; font-family: inherit; outline: none; cursor: pointer; }
+    .loc-select:focus { border-color: #7F77DD; }
+    .btn-save-loc { font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 8px; cursor: pointer; border: none; background: #6B63D4; color: #fff; font-family: inherit; white-space: nowrap; }
     .btn-save-loc:disabled { opacity: 0.45; cursor: not-allowed; }
-    .location-saved { font-size: 13px; color: #3B6D11; font-weight: 600; background: #EAF3DE; padding: 10px 14px; border-radius: 9px; display: inline-block; }
+    .loc-saved { font-size: 13px; font-weight: 600; color: #166534; }
 
-    /* IMPORT MODAL */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(10,9,8,0.6); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
-    .modal { background: #fff; border-radius: 18px; padding: 30px; width: 100%; max-width: 460px; box-shadow: 0 24px 80px rgba(26,25,22,0.22); }
-    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
-    .modal-sub { font-size: 13px; color: #9E9B93; margin-bottom: 22px; }
+    /* FILTER TABS */
+    .filter-tabs { display: flex; gap: 2px; background: #ECEAE4; border-radius: 10px; padding: 3px; width: fit-content; margin-bottom: 16px; }
+    .filter-tab { font-size: 12.5px; font-weight: 500; padding: 6px 14px; border-radius: 8px; border: none; background: transparent; color: #8A8780; cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
+    .filter-tab.active { background: #fff; color: #1A1916; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+    /* REVIEWS */
+    .reviews-list { display: flex; flex-direction: column; gap: 8px; }
+    .review-card { background: #fff; border: 1px solid #E5E3DC; border-radius: 14px; overflow: hidden; transition: box-shadow 0.2s; display: flex; }
+    .review-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .review-risk-bar { width: 3px; flex-shrink: 0; }
+    .review-body { flex: 1; padding: 18px 20px; }
+    .review-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
+    .reviewer-info { display: flex; align-items: center; gap: 11px; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; letter-spacing: 0.02em; }
+    .reviewer-name { font-size: 14px; font-weight: 600; color: #1A1916; margin-bottom: 3px; }
+    .reviewer-meta { font-size: 12px; color: #B8B4AC; display: flex; align-items: center; gap: 8px; }
+    .review-meta-sep { color: #D8D4CC; }
+    .stars-row { display: flex; align-items: center; gap: 1px; }
+    .star-filled { color: #F59E0B; }
+    .star-empty { color: #E5E3DC; }
+    .review-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+    .review-text { font-size: 14px; color: #4A4844; line-height: 1.65; margin-bottom: 14px; }
+    .reply-section { background: #F9F8F6; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; position: relative; }
+    .reply-section::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #7F77DD; border-radius: 3px 0 0 3px; }
+    .reply-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7F77DD; background: #EFEDFB; padding: 2px 8px; border-radius: 5px; }
+    .reply-edit-btn { font-size: 12px; color: #8A8780; border: none; background: none; cursor: pointer; font-family: inherit; padding: 0; }
+    .reply-edit-btn:hover { color: #1A1916; }
+    .reply-text { font-size: 13px; color: #3A3834; line-height: 1.7; }
+    .reply-textarea { width: 100%; font-size: 13px; color: #1A1916; line-height: 1.65; background: #fff; border: 1px solid #D0CEC7; border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 80px; font-family: inherit; outline: none; }
+    .reply-textarea:focus { border-color: #7F77DD; }
+    .flagged-notice { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #B91C1C; font-weight: 500; margin-bottom: 14px; }
+    .review-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-approve { font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 8px; cursor: pointer; border: none; background: #1A1916; color: #fff; font-family: inherit; transition: background 0.15s; }
+    .btn-approve:hover { background: #333; }
+    .btn-approve:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-edit-reply { font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: 8px; cursor: pointer; border: 1px solid #E5E3DC; background: #fff; color: #4A4844; font-family: inherit; }
+    .btn-reject { font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: 8px; cursor: pointer; border: 1px solid #FECACA; background: #fff; color: #DC2626; font-family: inherit; }
+    .btn-reject:hover { background: #FEF2F2; }
+
+    /* EMPTY */
+    .empty-state { background: #fff; border: 1px solid #E5E3DC; border-radius: 14px; padding: 5rem 2rem; text-align: center; }
+    .empty-state h3 { font-size: 15px; font-weight: 600; color: #6B6963; margin-bottom: 6px; }
+    .empty-state p { font-size: 13px; color: #B8B4AC; max-width: 300px; margin: 0 auto; line-height: 1.6; }
+    .loading-state { text-align: center; padding: 4rem; color: #B8B4AC; font-size: 14px; }
+
+    /* MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(6px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+    .modal { background: #fff; border-radius: 18px; padding: 28px; width: 100%; max-width: 460px; box-shadow: 0 25px 80px rgba(0,0,0,0.2); }
+    .modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+    .modal-title { font-size: 17px; font-weight: 700; color: #1A1916; }
+    .modal-sub { font-size: 13px; color: #8A8780; margin-top: 3px; }
+    .modal-close { background: #F5F4F1; border: none; border-radius: 8px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #8A8780; flex-shrink: 0; }
+    .modal-close:hover { background: #ECEAE4; color: #1A1916; }
     .modal-field { margin-bottom: 16px; }
-    .modal-field label { display: block; font-size: 13px; font-weight: 600; color: #5F5E5A; margin-bottom: 6px; }
-    .modal-field input, .modal-field textarea { width: 100%; font-size: 14px; color: #1A1916; background: #F7F6F3; border: 1px solid #E8E6E0; border-radius: 9px; padding: 10px 13px; font-family: inherit; outline: none; resize: vertical; transition: border-color 0.15s; }
-    .modal-field input:focus, .modal-field textarea:focus { border-color: #7F77DD; background: #fff; }
-    .modal-field textarea { min-height: 100px; }
-    .star-picker { display: flex; gap: 4px; }
-    .star-btn { font-size: 24px; background: none; border: none; cursor: pointer; padding: 0; line-height: 1; opacity: 0.2; transition: opacity 0.1s, transform 0.1s; }
-    .star-btn.active { opacity: 1; }
-    .star-btn:hover { transform: scale(1.15); }
-    .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
-    .modal-error { font-size: 13px; color: #A32D2D; background: #FCE8E8; border-radius: 9px; padding: 10px 13px; margin-bottom: 16px; }
+    .modal-field label { display: block; font-size: 13px; font-weight: 600; color: #4A4844; margin-bottom: 6px; }
+    .modal-input { width: 100%; font-size: 14px; color: #1A1916; background: #F9F8F6; border: 1px solid #E5E3DC; border-radius: 9px; padding: 10px 13px; font-family: inherit; outline: none; transition: border-color 0.15s; }
+    .modal-input:focus { border-color: #7F77DD; background: #fff; }
+    .modal-textarea { width: 100%; font-size: 14px; color: #1A1916; background: #F9F8F6; border: 1px solid #E5E3DC; border-radius: 9px; padding: 10px 13px; font-family: inherit; outline: none; resize: vertical; min-height: 100px; transition: border-color 0.15s; }
+    .modal-textarea:focus { border-color: #7F77DD; background: #fff; }
+    .star-picker { display: flex; gap: 6px; }
+    .star-btn { font-size: 26px; background: none; border: none; cursor: pointer; padding: 0; line-height: 1; color: #E5E3DC; transition: color 0.1s, transform 0.1s; }
+    .star-btn.active { color: #F59E0B; }
+    .star-btn:hover { transform: scale(1.2); }
+    .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .modal-error { font-size: 13px; color: #DC2626; background: #FEF2F2; border-radius: 8px; padding: 10px 13px; margin-bottom: 14px; }
 
-    @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, 1fr); } .page { padding: 1rem; } .location-row { flex-direction: column; } .nav { padding: 0 1rem; } }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .main { margin-left: 0; }
+      .topbar, .content { padding-left: 16px; padding-right: 16px; }
+      .stats-strip { flex-direction: column; }
+      .metric + .metric::before { display: none; }
+    }
   `
+
+  const FILTERS = ['all', 'pending', 'flagged', 'approved', 'posted']
 
   return (
     <>
       <style>{css}</style>
-      <div className="shell">
-        <nav className="nav">
-          <div className="nav-logo">
-            <div className="nav-dot" />
-            Revio
-          </div>
-          <div className="nav-actions">
-            <button className="nav-btn" onClick={handleGoogleConnect}>Connect Google</button>
-            <button className="nav-btn" onClick={() => router.push('/settings')}>Settings</button>
-            <button className="nav-btn" onClick={() => router.push('/billing')}>Billing</button>
-            <button className="nav-signout" onClick={() => { localStorage.removeItem('token'); router.push('/login') }}>Sign out</button>
-          </div>
-        </nav>
+      <div className="layout">
 
-        <div className="page">
-          {locked ? (
-            <div className="paywall">
-              <div className="paywall-title">Upgrade to Pro</div>
-              <div className="paywall-text">
-                Review management is a Pro feature. Subscribe for £18/month to unlock unlimited reviews and AI replies.
+        {/* SIDEBAR */}
+        <aside className="sidebar">
+          <div className="sidebar-logo">
+            <div className="logo-mark">
+              <Star size={14} fill="white" />
+            </div>
+            <span className="logo-name">Revio</span>
+          </div>
+          <nav className="sidebar-nav">
+            <span className="nav-section">Manage</span>
+            <button className="nav-item active">
+              <LayoutDashboard size={15} />
+              Dashboard
+            </button>
+            <button className="nav-item" onClick={() => router.push('/billing')}>
+              <CreditCard size={15} />
+              Billing
+            </button>
+            <button className="nav-item" onClick={() => router.push('/settings')}>
+              <Settings size={15} />
+              Settings
+            </button>
+            <span className="nav-section">Google</span>
+            <button className="nav-item" onClick={handleGoogleConnect}>
+              <RefreshCw size={15} />
+              Connect Google
+            </button>
+          </nav>
+          <div className="sidebar-bottom">
+            <button className="nav-signout" onClick={() => { localStorage.removeItem('token'); router.push('/login') }}>
+              <LogOut size={15} />
+              Sign out
+            </button>
+          </div>
+        </aside>
+
+        {/* MAIN */}
+        <div className="main">
+          <div className="topbar">
+            <span className="topbar-title">Reviews</span>
+            <div className="topbar-actions">
+              <button className="btn-ghost" onClick={() => fetchReviews(true)}>
+                <RefreshCw size={13} className={refreshing ? 'spinning' : ''} />
+                Refresh
+              </button>
+              <button className="btn-primary" onClick={() => setShowImport(true)}>
+                <Plus size={14} />
+                Add review
+              </button>
+            </div>
+          </div>
+
+          <div className="content">
+            {locked ? (
+              <div className="paywall">
+                <h2>Upgrade to Pro</h2>
+                <p>Subscribe for £18/month to unlock review management, AI replies, and your rating goal tracker.</p>
+                <button className="paywall-btn" onClick={() => router.push('/billing')}>View plans</button>
               </div>
-              <button className="paywall-btn" onClick={() => router.push('/billing')}>View plans</button>
-            </div>
-          ) : (
-          <>
-          {showLocationPicker && (
-            <div className="location-banner">
-              <div className="location-banner-title">Select your business location</div>
-              <div className="location-banner-sub">Choose the one Google Business Profile location Revio will manage. This can be changed later from Settings.</div>
-              {locationSaved ? (
-                <div className="location-saved">✓ Location saved — reviews will start syncing shortly.</div>
-              ) : (
-                <div className="location-row">
-                  <div className="location-field">
-                    <label>Account</label>
-                    <select value={selectedAccount} onChange={e => handleAccountChange(e.target.value)}>
-                      <option value="">Select account…</option>
-                      {accounts.map((a: any) => (
-                        <option key={a.name} value={a.name}>{a.accountName || a.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="location-field">
-                    <label>Location</label>
-                    <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} disabled={!locations.length}>
-                      <option value="">{loadingLocations ? 'Loading…' : 'Select location…'}</option>
-                      {locations.map((l: any) => (
-                        <option key={l.name} value={l.name}>{l.title || l.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button className="btn-save-loc" onClick={handleSaveLocation} disabled={!selectedAccount || !selectedLocation || savingLocation}>
-                    {savingLocation ? 'Saving…' : 'Save location'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="stats">
-            <div className="stat">
-              <div className="stat-icon">📋</div>
-              <div className="stat-label">Total reviews</div>
-              <div className="stat-value">{stats.total}</div>
-            </div>
-            <div className="stat stat-rating">
-              <div className="stat-icon">⭐</div>
-              <div className="stat-label">Avg rating</div>
-              <div className="stat-value">{stats.avgRating || '—'}</div>
-              {stats.avgRating > 0 && <div className="stat-sub">out of 5.0</div>}
-            </div>
-            <div className={'stat' + (stats.pendingCount > 0 ? ' stat-pending' : '')}>
-              <div className="stat-icon">⏳</div>
-              <div className="stat-label">Pending approval</div>
-              <div className="stat-value">{stats.pendingCount}</div>
-              {stats.pendingCount > 0 && <div className="stat-sub">need your review</div>}
-            </div>
-            <div className="stat">
-              <div className="stat-icon">✅</div>
-              <div className="stat-label">Auto-posted</div>
-              <div className="stat-value">{stats.autoReplied}</div>
-            </div>
-          </div>
-
-          <RatingGoal rating={stats.avgRating} count={stats.total} />
-          <ReviewCalculator />
-
-          <div className="section-header">
-            <span className="section-title">Reviews</span>
-            <div className="toolbar-right">
-              <button className="btn-import" onClick={() => setShowImport(true)}>+ Add manually</button>
-              <div className="filters">
-                {FILTERS.map(f => (
-                  <button key={f} className={'filter-btn' + (filter === f ? ' active' : '')} onClick={() => setFilter(f)}>{f}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {loading && <div className="loading">Loading reviews…</div>}
-          {!loading && filtered.length === 0 && (
-            <div className="empty">
-              <div className="empty-icon">📭</div>
-              <div className="empty-title">No reviews here yet</div>
-              <div className="empty-sub">Connect your Google Business Profile or add a review manually to get started.</div>
-            </div>
-          )}
-
-          {!loading && (
-            <div className="reviews">
-              {filtered.map((review: Review) => {
-                const av = avatarColor(review.reviewer_name)
-                const isEditing = editing[review.id] !== undefined
-                const replyText = isEditing ? editing[review.id] : review.generated_reply
-                return (
-                  <div key={review.id} className={'card' + (review.status === 'flagged' ? ' card-flagged' : '')}>
-                    <div className="card-top">
-                      <div className="reviewer">
-                        <div className="avatar" style={{ background: av.bg, color: av.color }}>{initials(review.reviewer_name)}</div>
-                        <div>
-                          <div className="reviewer-name">{review.reviewer_name}</div>
-                          <div className="reviewer-meta">{review.created_at ? timeAgo(review.created_at) : ''} · Google</div>
-                        </div>
-                      </div>
-                      <div className="badges">
-                        <RiskBadge risk={review.risk_level} />
-                        <StatusBadge status={review.status} />
-                      </div>
+            ) : (
+              <>
+                {/* LOCATION PICKER */}
+                {showLocationPicker && (
+                  <div className="location-bar">
+                    <div className="location-bar-text">
+                      <div className="location-bar-title">Select your business location</div>
+                      <div className="location-bar-sub">Choose the one location Revio will manage.</div>
                     </div>
-
-                    <div className="stars">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</div>
-                    <p className="review-text">{review.review_text}</p>
-
-                    {review.status === 'flagged' ? (
-                      <div className="flagged-banner">⚠ Flagged for manual review — respond personally, do not auto-reply.</div>
-                    ) : replyText ? (
-                      <div className="reply-box">
-                        <div className="reply-label">
-                          <span className="reply-label-pill">AI Draft</span>
-                          {review.status === 'pending' && (
-                            <span onClick={() => isEditing
-                              ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
-                              : setEditing(e => ({ ...e, [review.id]: review.generated_reply }))
-                            }>{isEditing ? 'cancel' : 'edit'}</span>
-                          )}
-                        </div>
-                        {isEditing
-                          ? <textarea className="reply-edit" value={editing[review.id]} onChange={e => setEditing(ed => ({ ...ed, [review.id]: e.target.value }))} />
-                          : <p className="reply-text">{replyText}</p>
-                        }
-                      </div>
-                    ) : null}
-
-                    {review.status === 'pending' && (
-                      <div className="actions">
-                        <button className="btn btn-approve" disabled={approving === review.id} onClick={() => handleApprove(review.id)}>
-                          {approving === review.id ? 'Posting…' : 'Approve & post'}
+                    {locationSaved ? (
+                      <span className="loc-saved">✓ Location saved</span>
+                    ) : (
+                      <div className="location-selects">
+                        <select className="loc-select" value={selectedAccount} onChange={e => handleAccountChange(e.target.value)}>
+                          <option value="">Select account…</option>
+                          {accounts.map((a: any) => <option key={a.name} value={a.name}>{a.accountName || a.name}</option>)}
+                        </select>
+                        <select className="loc-select" value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} disabled={!locations.length}>
+                          <option value="">{loadingLocations ? 'Loading…' : 'Select location…'}</option>
+                          {locations.map((l: any) => <option key={l.name} value={l.name}>{l.title || l.name}</option>)}
+                        </select>
+                        <button className="btn-save-loc" onClick={handleSaveLocation} disabled={!selectedAccount || !selectedLocation || savingLocation}>
+                          {savingLocation ? 'Saving…' : 'Confirm'}
                         </button>
-                        {!isEditing && (
-                          <button className="btn btn-edit" onClick={() => setEditing(e => ({ ...e, [review.id]: review.generated_reply }))}>Edit reply</button>
-                        )}
-                        <button className="btn btn-reject" onClick={() => handleReject(review.id)}>Reject</button>
                       </div>
                     )}
                   </div>
-                )
-              })}
-            </div>
-          )}
-          </>
-          )}
+                )}
+
+                {/* STATS */}
+                <div className="stats-strip">
+                  <div className="metric">
+                    <div className="metric-label"><Star size={11} /> Total reviews</div>
+                    <div className="metric-value">{reviews.length}</div>
+                    <div className="metric-sub">all time</div>
+                  </div>
+                  <div className="metric">
+                    <div className="metric-label"><Star size={11} /> Avg rating</div>
+                    <div className="metric-value purple">{avgRating || '—'}</div>
+                    <div className="metric-sub">out of 5.0</div>
+                  </div>
+                  <div className="metric">
+                    <div className="metric-label"><Clock size={11} /> Pending</div>
+                    <div className={`metric-value${pendingCount > 0 ? ' amber' : ''}`}>{pendingCount}</div>
+                    <div className="metric-sub">{pendingCount > 0 ? 'need approval' : 'all clear'}</div>
+                  </div>
+                  <div className="metric">
+                    <div className="metric-label"><CheckCheck size={11} /> Auto-posted</div>
+                    <div className="metric-value">{postedCount}</div>
+                    <div className="metric-sub">replies live</div>
+                  </div>
+                </div>
+
+                {/* RATING GOAL */}
+                <RatingGoal rating={avgRating} count={reviews.length} />
+
+                {/* FILTER TABS */}
+                <div className="filter-tabs">
+                  {FILTERS.map(f => (
+                    <button key={f} className={`filter-tab${filter === f ? ' active' : ''}`} onClick={() => setFilter(f)}>
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                      {f === 'pending' && pendingCount > 0 && ` (${pendingCount})`}
+                    </button>
+                  ))}
+                </div>
+
+                {/* REVIEWS */}
+                {loading && <div className="loading-state">Loading reviews…</div>}
+                {!loading && filtered.length === 0 && (
+                  <div className="empty-state">
+                    <h3>No reviews here</h3>
+                    <p>Connect your Google Business Profile or add a review manually to get started.</p>
+                  </div>
+                )}
+                {!loading && (
+                  <div className="reviews-list">
+                    {filtered.map((review: Review) => {
+                      const av = avatarColor(review.reviewer_name)
+                      const isEditing = editing[review.id] !== undefined
+                      const replyText = isEditing ? editing[review.id] : review.generated_reply
+                      const statusPill = STATUS_PILL[review.status]
+                      return (
+                        <div key={review.id} className="review-card">
+                          <div className="review-risk-bar" style={{ background: RISK_BORDER[review.risk_level] || '#E5E3DC' }} />
+                          <div className="review-body">
+                            <div className="review-header">
+                              <div className="reviewer-info">
+                                <div className="avatar" style={{ background: av.bg, color: av.color }}>
+                                  {initials(review.reviewer_name)}
+                                </div>
+                                <div>
+                                  <div className="reviewer-name">{review.reviewer_name}</div>
+                                  <div className="reviewer-meta">
+                                    <span className="stars-row">
+                                      {[1,2,3,4,5].map(n => (
+                                        <Star key={n} size={11} fill={n <= review.rating ? '#F59E0B' : 'none'} className={n <= review.rating ? 'star-filled' : 'star-empty'} />
+                                      ))}
+                                    </span>
+                                    <span className="review-meta-sep">·</span>
+                                    <span>{review.created_at ? timeAgo(review.created_at) : ''}</span>
+                                    <span className="review-meta-sep">·</span>
+                                    <span>Google</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="review-badges">
+                                {statusPill && (
+                                  <span className="pill" style={{ background: statusPill.bg, color: statusPill.color }}>
+                                    {statusPill.label}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <p className="review-text">{review.review_text}</p>
+
+                            {review.status === 'flagged' ? (
+                              <div className="flagged-notice">
+                                <AlertTriangle size={15} />
+                                Flagged — respond to this one personally, do not auto-reply.
+                              </div>
+                            ) : replyText ? (
+                              <div className="reply-section">
+                                <div className="reply-header">
+                                  <span className="reply-tag">AI Draft</span>
+                                  {review.status === 'pending' && (
+                                    <button className="reply-edit-btn" onClick={() => isEditing
+                                      ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
+                                      : setEditing(e => ({ ...e, [review.id]: review.generated_reply }))
+                                    }>{isEditing ? 'Cancel edit' : 'Edit'}</button>
+                                  )}
+                                </div>
+                                {isEditing
+                                  ? <textarea className="reply-textarea" value={editing[review.id]} onChange={e => setEditing(ed => ({ ...ed, [review.id]: e.target.value }))} />
+                                  : <p className="reply-text">{replyText}</p>
+                                }
+                              </div>
+                            ) : null}
+
+                            {review.status === 'pending' && (
+                              <div className="review-actions">
+                                <button className="btn-approve" disabled={approving === review.id} onClick={() => handleApprove(review.id)}>
+                                  {approving === review.id ? 'Posting…' : 'Approve & post'}
+                                </button>
+                                {!isEditing && (
+                                  <button className="btn-edit-reply" onClick={() => setEditing(e => ({ ...e, [review.id]: review.generated_reply }))}>Edit reply</button>
+                                )}
+                                <button className="btn-reject" onClick={() => handleReject(review.id)}>Reject</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* IMPORT MODAL */}
       {showImport && (
         <div className="modal-overlay" onClick={() => setShowImport(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Add review manually</div>
-            <div className="modal-sub">Paste in a review to generate an AI reply draft.</div>
+            <div className="modal-header">
+              <div>
+                <div className="modal-title">Add review manually</div>
+                <div className="modal-sub">Paste in a review to generate an AI reply draft.</div>
+              </div>
+              <button className="modal-close" onClick={() => setShowImport(false)}><X size={14} /></button>
+            </div>
             <form onSubmit={handleImport}>
               {importError && <div className="modal-error">{importError}</div>}
               <div className="modal-field">
                 <label>Reviewer name</label>
-                <input type="text" value={importName} onChange={e => setImportName(e.target.value)} required placeholder="e.g. Sarah M." />
+                <input className="modal-input" type="text" value={importName} onChange={e => setImportName(e.target.value)} required placeholder="e.g. Sarah M." />
               </div>
               <div className="modal-field">
                 <label>Rating</label>
                 <div className="star-picker">
                   {[1,2,3,4,5].map(n => (
-                    <button key={n} type="button" className={'star-btn' + (n <= importRating ? ' active' : '')} onClick={() => setImportRating(n)}>★</button>
+                    <button key={n} type="button" className={`star-btn${n <= importRating ? ' active' : ''}`} onClick={() => setImportRating(n)}>★</button>
                   ))}
                 </div>
               </div>
               <div className="modal-field">
                 <label>Review text</label>
-                <textarea value={importText} onChange={e => setImportText(e.target.value)} required placeholder="Paste the review here…" />
+                <textarea className="modal-textarea" value={importText} onChange={e => setImportText(e.target.value)} required placeholder="Paste the review here…" />
               </div>
               <div className="modal-actions">
-                <button className="btn btn-approve" type="submit" disabled={importLoading}>
+                <button className="btn-approve" type="submit" disabled={importLoading}>
                   {importLoading ? 'Processing…' : 'Import & generate reply'}
                 </button>
-                <button className="btn btn-edit" type="button" onClick={() => setShowImport(false)}>Cancel</button>
+                <button className="btn-edit-reply" type="button" onClick={() => setShowImport(false)}>Cancel</button>
               </div>
             </form>
           </div>
