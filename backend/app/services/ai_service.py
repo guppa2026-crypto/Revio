@@ -43,17 +43,23 @@ def generate_reply(review_text: str, rating: int, business_name: str, risk_level
     if risk_level == "high":
         tone_instruction = """
 This review contains serious concerns — it may include legal threats, safety allegations, severe complaints,
-or content that could escalate into a PR issue.
+or content that could become a PR issue.
 
-Your reply must:
-- Be very brief: 2-3 sentences only
-- Acknowledge you have seen and heard their concern, without admitting liability or fault
-- Move the conversation offline immediately — invite them to contact you directly so the matter can be resolved properly
-- Sound calm, professional, and genuinely concerned — not defensive, not dismissive
-- NOT address the specific allegation publicly — that belongs in a private conversation
+Your reply must feel like it comes from a real person who is genuinely troubled by what they've read —
+not a corporate script, not a deflection, not a hollow "we're sorry you feel that way."
 
-The purpose of this reply is to show other customers you are responsive and take concerns seriously,
-while ensuring the real conversation happens off Google.
+Structure:
+1. Open with a human, warm acknowledgement of their specific concern — show you actually read it and it matters to you personally
+2. Express that this is not the standard you hold yourself to and you are genuinely sorry they had this experience
+3. Invite them to contact you directly so you can make it right — frame it as something you personally want to resolve, not a call centre handoff
+4. Keep it to 3 sentences maximum — brevity shows confidence, not indifference
+
+Rules:
+- Do NOT admit liability or fault for specific allegations
+- Do NOT address the details of the complaint publicly
+- Do NOT use hollow phrases like "we take this very seriously" or "we value your feedback"
+- Sound like a real business owner who is personally affected by this review, not a PR department
+- Warm, human, direct — someone reading it should feel the person behind the reply actually cares
 """
     elif rating >= 4:
         tone_instruction = """
