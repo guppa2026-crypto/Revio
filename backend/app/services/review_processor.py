@@ -18,8 +18,10 @@ def process_review(review: Review, db: Session, business_name: str = "Our Busine
 
     # Step 3 - Handle by risk level
     if review.risk_level == "high":
+        reply = generate_reply(review.review_text or "", review.rating, business_name, risk_level="high")
+        review.generated_reply = reply
         review.status = "flagged"
-        logger.info("Review %s flagged as HIGH RISK", review.id)
+        logger.info("Review %s flagged as HIGH RISK — draft generated", review.id)
         _notify_flagged(review)
 
     elif review.risk_level == "medium":
@@ -59,6 +61,7 @@ def _notify_flagged(review: Review):
                 review.reviewer_name or "Anonymous",
                 review.rating,
                 review.review_text or "",
+                review.generated_reply or "",
             )
         db.close()
     except Exception as e:

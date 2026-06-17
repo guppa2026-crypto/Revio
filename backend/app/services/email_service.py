@@ -21,14 +21,30 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
         logger.exception("Failed to send email to %s: %s", to_email, e)
         return False
 
-def send_flagged_review_alert(to_email: str, reviewer_name: str, rating: int, review_text: str):
-    subject = f"⚠️ High Risk Review Flagged — {rating}★ from {reviewer_name}"
+def send_flagged_review_alert(to_email: str, reviewer_name: str, rating: int, review_text: str, draft_reply: str = ""):
+    subject = f"⚠️ High Risk Review — {rating}★ from {reviewer_name} — Action Required"
+    draft_section = f"""
+    <hr style="border:none;border-top:1px solid #E5E3DC;margin:20px 0;">
+    <p><strong>Suggested reply draft</strong> <span style="font-size:12px;color:#888;">(review carefully before posting — do not post automatically)</span></p>
+    <blockquote style="border-left:3px solid #EF4444;padding:10px 16px;margin:12px 0;background:#FEF2F2;border-radius:4px;color:#3A3834;font-style:normal;">{draft_reply}</blockquote>
+    <p style="font-size:13px;color:#888;">You can edit this reply before approving it on the dashboard.</p>
+    """ if draft_reply else ""
+
     html = f"""
-    <h2>A review has been flagged for your attention</h2>
-    <p><strong>Reviewer:</strong> {reviewer_name}</p>
-    <p><strong>Rating:</strong> {rating}/5</p>
-    <p><strong>Review:</strong> {review_text}</p>
-    <p><a href="https://reviodigital.uk/dashboard" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View Dashboard →</a></p>
+    <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#1A1916;">
+    <h2 style="color:#B91C1C;">⚠️ High risk review — handle personally</h2>
+    <p>This review has been flagged as high risk. Do not post a reply without reviewing it carefully first.</p>
+    <table style="width:100%;border:1px solid #FECACA;border-radius:8px;padding:16px;background:#FEF2F2;margin:16px 0;">
+      <tr><td style="padding:4px 0;"><strong>Reviewer:</strong></td><td>{reviewer_name}</td></tr>
+      <tr><td style="padding:4px 0;"><strong>Rating:</strong></td><td>{'★' * rating}{'☆' * (5 - rating)} ({rating}/5)</td></tr>
+    </table>
+    <p><strong>Review text:</strong></p>
+    <blockquote style="border-left:3px solid #FECACA;padding:10px 16px;margin:12px 0;background:#fff;border-radius:4px;">{review_text}</blockquote>
+    {draft_section}
+    <p style="margin-top:24px;">
+      <a href="https://reviodigital.uk/dashboard" style="background:#1A1916;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;">View on Dashboard →</a>
+    </p>
+    </div>
     """
     return send_email(to_email, subject, html)
 

@@ -39,8 +39,23 @@ Risk level rules:
     return json.loads(result)
 
 
-def generate_reply(review_text: str, rating: int, business_name: str) -> str:
-    if rating >= 4:
+def generate_reply(review_text: str, rating: int, business_name: str, risk_level: str = "low") -> str:
+    if risk_level == "high":
+        tone_instruction = """
+This review contains serious concerns — it may include legal threats, safety allegations, severe complaints,
+or content that could escalate into a PR issue.
+
+Your reply must:
+- Be very brief: 2-3 sentences only
+- Acknowledge you have seen and heard their concern, without admitting liability or fault
+- Move the conversation offline immediately — invite them to contact you directly so the matter can be resolved properly
+- Sound calm, professional, and genuinely concerned — not defensive, not dismissive
+- NOT address the specific allegation publicly — that belongs in a private conversation
+
+The purpose of this reply is to show other customers you are responsive and take concerns seriously,
+while ensuring the real conversation happens off Google.
+"""
+    elif rating >= 4:
         tone_instruction = """
 The customer had a positive experience. Be warm, genuine, and personal — reference the specific thing they praised.
 Keep it to 2-3 sentences. Do not be sycophantic or overly effusive.
