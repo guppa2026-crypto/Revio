@@ -121,7 +121,7 @@ async def list_accounts(
         raise HTTPException(status_code=502, detail="Failed to fetch Google accounts")
 
 
-@router.get("/locations/{account_id}")
+@router.get("/locations/{account_id:path}")
 async def list_locations(
     account_id: str,
     db: Session = Depends(get_db),

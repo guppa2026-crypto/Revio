@@ -80,6 +80,7 @@ export default function DashboardPage() {
   // Location picker
   const [showLocationPicker, setShowLocationPicker] = useState(false)
   const [accounts, setAccounts] = useState<any[]>([])
+  const [accountsError, setAccountsError] = useState('')
   const [selectedAccount, setSelectedAccount] = useState('')
   const [locations, setLocations] = useState<any[]>([])
   const [selectedLocation, setSelectedLocation] = useState('')
@@ -117,10 +118,16 @@ export default function DashboardPage() {
   }
 
   const loadAccounts = async () => {
+    setAccountsError('')
     try {
       const res = await api.get('/google/accounts')
-      setAccounts(res.data.accounts || [])
-    } catch { setAccounts([]) }
+      const list = res.data.accounts || []
+      setAccounts(list)
+      if (list.length === 0) setAccountsError('No Google Business accounts found. Make sure you connected the right Google account.')
+    } catch {
+      setAccounts([])
+      setAccountsError('Could not load accounts. Try disconnecting and reconnecting Google in Settings.')
+    }
   }
 
   const handleAccountChange = async (accountId: string) => {
@@ -409,6 +416,10 @@ export default function DashboardPage() {
                     </div>
                     {locationSaved ? (
                       <span className="loc-saved">✓ Location saved</span>
+                    ) : accountsError ? (
+                      <div style={{ fontSize: 13, color: '#B91C1C', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 14px', maxWidth: 360 }}>
+                        {accountsError}
+                      </div>
                     ) : (
                       <div className="location-selects">
                         <select className="loc-select" value={selectedAccount} onChange={e => handleAccountChange(e.target.value)}>
