@@ -109,6 +109,7 @@ Tone and structure guidance:
 {tone_instruction}
 
 Additional rules:
+- Always use "we" and "our" — never "I" or "my" — this is a business replying, not an individual
 - Reference the SPECIFIC details they mentioned — never write a reply that could apply to any review
 - Sound human — contractions, natural phrasing, no corporate jargon
 - Never start with "Thank you for your review" or "We're sorry to hear that" as the opening line — find a more genuine opening
