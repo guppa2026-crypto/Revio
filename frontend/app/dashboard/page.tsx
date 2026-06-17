@@ -75,6 +75,7 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState('all')
   const [editing, setEditing] = useState<Record<string, string>>({})
   const [approving, setApproving] = useState<string | null>(null)
+  const [regenerating, setRegenerating] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
   // Location picker
@@ -168,6 +169,17 @@ export default function DashboardPage() {
   const handleCancelSchedule = async (id: string) => {
     await api.post('/reviews/' + id + '/cancel-schedule')
     fetchReviews()
+  }
+
+  const handleRegenerate = async (id: string) => {
+    setRegenerating(id)
+    try {
+      const res = await api.post('/reviews/' + id + '/regenerate')
+      setReviews(prev => prev.map(r => r.id === id ? { ...r, generated_reply: res.data.generated_reply } : r))
+      setEditing(e => { const n = { ...e }; delete n[id]; return n })
+    } finally {
+      setRegenerating(null)
+    }
   }
 
   const handleGoogleConnect = async () => {
@@ -287,6 +299,11 @@ export default function DashboardPage() {
     .reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7F77DD; background: #EFEDFB; padding: 2px 8px; border-radius: 5px; }
     .reply-edit-btn { font-size: 12px; color: #8A8780; border: none; background: none; cursor: pointer; font-family: inherit; padding: 0; }
     .reply-edit-btn:hover { color: #1A1916; }
+    .reply-regen-btn { font-size: 12px; color: #8A8780; border: none; background: none; cursor: pointer; font-family: inherit; padding: 0; display: flex; align-items: center; gap: 4px; }
+    .reply-regen-btn:hover { color: #7F77DD; }
+    .reply-regen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .spin { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .reply-text { font-size: 13px; color: #3A3834; line-height: 1.7; }
     .reply-textarea { width: 100%; font-size: 13px; color: #1A1916; line-height: 1.65; background: #fff; border: 1px solid #D0CEC7; border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 80px; font-family: inherit; outline: none; }
     .reply-textarea:focus { border-color: #7F77DD; }
@@ -543,12 +560,22 @@ export default function DashboardPage() {
                               <div className="reply-section">
                                 <div className="reply-header">
                                   <span className="reply-tag">AI Draft</span>
-                                  {(review.status === 'pending' || review.status === 'scheduled' || review.status === 'flagged') && (
-                                    <button className="reply-edit-btn" onClick={() => isEditing
-                                      ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
-                                      : setEditing(e => ({ ...e, [review.id]: review.generated_reply }))
-                                    }>{isEditing ? 'Cancel edit' : 'Edit'}</button>
-                                  )}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    {(review.status === 'pending' || review.status === 'scheduled' || review.status === 'flagged') && (
+                                      <button className="reply-edit-btn" onClick={() => isEditing
+                                        ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
+                                        : setEditing(e => ({ ...e, [review.id]: review.generated_reply }))
+                                      }>{isEditing ? 'Cancel edit' : 'Edit'}</button>
+                                    )}
+                                    <button
+                                      className="reply-regen-btn"
+                                      disabled={regenerating === review.id}
+                                      onClick={() => handleRegenerate(review.id)}
+                                    >
+                                      <RefreshCw size={11} className={regenerating === review.id ? 'spin' : ''} />
+                                      {regenerating === review.id ? 'Regenerating…' : 'Regenerate'}
+                                    </button>
+                                  </div>
                                 </div>
                                 {isEditing
                                   ? <textarea className="reply-textarea" value={editing[review.id]} onChange={e => setEditing(ed => ({ ...ed, [review.id]: e.target.value }))} />
