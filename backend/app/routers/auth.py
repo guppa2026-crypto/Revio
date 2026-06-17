@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.database import get_db
@@ -7,13 +7,17 @@ from app.models.tenant import Tenant
 from app.schemas.user import TenantCreate, UserLogin, Token
 from app.utils.security import hash_password, verify_password, create_access_token
 from app.utils.dependencies import get_current_user
+from app.utils.limiter import limiter
 from app.services.email_service import send_new_signup_notification
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/register", response_model=Token)
-def register(data: TenantCreate, db: Session = Depends(get_db)):
-    # Check if email already exists
+@limiter.limit("5/minute")
+def register(request: Request, data: TenantCreate, db: Session = Depends(get_db)):
+    if len(data.password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be at least 8 characters")
+
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(
@@ -72,7 +76,8 @@ def change_password(data: ChangePasswordRequest, current_user: User = Depends(ge
     return {"message": "Password updated successfully"}
 
 @router.post("/login", response_model=Token)
-def login(data: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, data: UserLogin, db: Session = Depends(get_db)):
     # Find the user
     user = db.query(User).filter(User.email == data.email).first()
     if not user:

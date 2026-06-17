@@ -40,7 +40,6 @@ def billing_status(
     return {
         "is_subscribed": tenant.is_subscribed,
         "subscription_status": tenant.subscription_status,
-        "stripe_subscription_id": tenant.stripe_subscription_id,
         "current_period_end": subscription.get("current_period_end") if subscription else None,
     }
 

@@ -3,6 +3,7 @@ import urllib.parse
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.database import get_db
@@ -13,6 +14,15 @@ from app.config import settings
 from app.services.google_service import (
     refresh_access_token, get_accounts, get_locations, get_reviews, post_reply
 )
+
+
+class SelectLocationRequest(BaseModel):
+    account_id: str
+    location_id: str
+
+
+class ReplyRequest(BaseModel):
+    reply: str
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/google", tags=["google"])
@@ -106,8 +116,9 @@ async def list_accounts(
         token = await refresh_access_token(tenant, db)
         accounts = await get_accounts(token)
         return {"accounts": accounts}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Failed to fetch Google accounts for tenant %s", current_user.tenant_id)
+        raise HTTPException(status_code=502, detail="Failed to fetch Google accounts")
 
 
 @router.get("/locations/{account_id}")
@@ -124,20 +135,20 @@ async def list_locations(
         token = await refresh_access_token(tenant, db)
         locations = await get_locations(token, account_id)
         return {"locations": locations}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Failed to fetch locations for account %s", account_id)
+        raise HTTPException(status_code=502, detail="Failed to fetch locations")
 
 
 @router.post("/select-location")
 async def select_location(
-    payload: dict,
+    payload: SelectLocationRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Save the selected GMB account and location for this tenant."""
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
-    tenant.google_account_id = payload.get("account_id")
-    tenant.google_location_id = payload.get("location_id")
+    tenant.google_account_id = payload.account_id
+    tenant.google_location_id = payload.location_id
     db.commit()
     return {"message": "Location saved"}
 
@@ -157,29 +168,27 @@ async def fetch_reviews(
         token = await refresh_access_token(tenant, db)
         reviews = await get_reviews(token, tenant.google_account_id, tenant.google_location_id)
         return {"reviews": reviews, "count": len(reviews)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Failed to fetch reviews from Google for tenant %s", current_user.tenant_id)
+        raise HTTPException(status_code=502, detail="Failed to fetch reviews from Google")
 
 
 @router.post("/reviews/{review_id}/reply")
 async def reply_to_review(
     review_id: str,
-    payload: dict,
+    payload: ReplyRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Post a reply to a Google review."""
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant or not tenant.google_access_token:
         raise HTTPException(status_code=400, detail="Google not connected")
     if not tenant.google_account_id or not tenant.google_location_id:
         raise HTTPException(status_code=400, detail="No location selected")
-    reply_text = payload.get("reply")
-    if not reply_text:
-        raise HTTPException(status_code=400, detail="reply field required")
     try:
         token = await refresh_access_token(tenant, db)
-        result = await post_reply(token, tenant.google_account_id, tenant.google_location_id, review_id, reply_text)
+        result = await post_reply(token, tenant.google_account_id, tenant.google_location_id, review_id, payload.reply)
         return {"message": "Reply posted", "result": result}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Failed to post reply to Google for review %s", review_id)
+        raise HTTPException(status_code=502, detail="Failed to post reply to Google")
