@@ -103,12 +103,42 @@ def google_disconnect(
     return {"message": "Google disconnected"}
 
 
+@router.get("/debug")
+async def google_debug(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Temporary debug endpoint — returns raw Google API response."""
+    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
+    if not tenant or not tenant.google_access_token:
+        return {"error": "No Google token stored for this account"}
+    try:
+        token = await refresh_access_token(tenant, db)
+    except Exception as e:
+        return {"error": f"Token refresh failed: {e}"}
+
+    results = {}
+    async with httpx.AsyncClient() as client:
+        # Check what scopes this token actually has
+        ti = await client.get(f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={token}")
+        results["token_info"] = ti.json()
+
+        # Raw accounts response
+        ar = await client.get(
+            "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        results["accounts_response"] = ar.json()
+        results["accounts_status"] = ar.status_code
+
+    return results
+
+
 @router.get("/accounts")
 async def list_accounts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all GMB accounts for the connected Google user."""
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant or not tenant.google_access_token:
         raise HTTPException(status_code=400, detail="Google not connected")
