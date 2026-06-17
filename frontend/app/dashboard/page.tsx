@@ -126,7 +126,7 @@ export default function DashboardPage() {
       if (list.length === 0) setAccountsError('No Google Business accounts found. Make sure you connected the right Google account.')
     } catch {
       setAccounts([])
-      setAccountsError('Could not load accounts. Try disconnecting and reconnecting Google in Settings.')
+      setAccountsError('Google API access is pending approval. Once approved by Google, disconnect and reconnect to load your location.')
     }
   }
 
