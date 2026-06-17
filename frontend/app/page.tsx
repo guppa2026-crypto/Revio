@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { Star, Shield, Zap, CheckCircle, ArrowRight } from 'lucide-react'
 
 export default function HomePage() {
   const [loggedIn, setLoggedIn] = useState(false)
@@ -13,94 +14,129 @@ export default function HomePage() {
 
   const css = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    .shell { min-height: 100vh; background: #F7F6F3; font-family: system-ui, -apple-system, sans-serif; color: #1A1916; overflow-x: hidden; }
+    html { scroll-behavior: smooth; }
+    body { background: #FAFAF8; }
+    .shell { min-height: 100vh; background: #FAFAF8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111110; overflow-x: hidden; }
     a { text-decoration: none; color: inherit; }
 
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-    @keyframes floatIn { from { opacity: 0; transform: translateY(28px) scale(0.98); } to { opacity: 1; transform: none; } }
-    .anim { opacity: 0; animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
-    .d1 { animation-delay: 0.05s; } .d2 { animation-delay: 0.15s; } .d3 { animation-delay: 0.25s; } .d4 { animation-delay: 0.35s; }
+    /* NAV */
+    .nav { background: rgba(250,250,248,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid #ECEAE4; padding: 0 2.5rem; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+    .nav-logo { font-size: 18px; font-weight: 800; color: #111110; letter-spacing: -0.03em; display: flex; align-items: center; gap: 8px; }
+    .logo-mark { width: 26px; height: 26px; background: #111110; border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { color: #fff; }
+    .nav-links { display: flex; align-items: center; gap: 6px; }
+    .nav-login { font-size: 14px; font-weight: 500; color: #6B6963; padding: 8px 14px; border-radius: 8px; transition: color 0.15s; }
+    .nav-login:hover { color: #111110; }
+    .nav-cta { font-size: 14px; font-weight: 600; color: #fff; background: #111110; padding: 9px 18px; border-radius: 9px; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
+    .nav-cta:hover { background: #2D2D2A; }
 
-    .nav { background: rgba(247,246,243,0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid #ECEAE4; padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
-    .nav-logo { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .nav-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, #9A8FF0, #7F77DD); box-shadow: 0 0 0 3px rgba(127,119,221,0.15); }
-    .nav-links { display: flex; align-items: center; gap: 8px; }
-    .nav-login { font-size: 14px; color: #4A4844; padding: 8px 12px; border-radius: 8px; }
-    .nav-login:hover { background: #F1EFE8; }
-    .nav-cta { font-size: 14px; font-weight: 500; color: #fff; background: #1A1916; padding: 8px 16px; border-radius: 9px; transition: transform 0.15s, background 0.15s; }
-    .nav-cta:hover { background: #333; transform: translateY(-1px); }
+    /* HERO */
+    .hero-wrap { max-width: 1100px; margin: 0 auto; padding: 5rem 2.5rem 4rem; display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; }
+    .hero-left { }
+    .hero-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5B52CC; background: #EEEDFB; border: 1px solid #D8D4F8; padding: 5px 12px; border-radius: 99px; margin-bottom: 1.75rem; }
+    .hero-tag-dot { width: 6px; height: 6px; border-radius: 50%; background: #5B52CC; }
+    .hero-h1 { font-size: clamp(38px, 4.5vw, 58px); font-weight: 800; line-height: 1.05; letter-spacing: -0.035em; color: #111110; margin-bottom: 1.25rem; }
+    .hero-h1 em { font-style: normal; color: #5B52CC; }
+    .hero-sub { font-size: 17px; color: #6B6963; line-height: 1.65; max-width: 440px; margin-bottom: 2rem; }
+    .hero-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .btn-dark { font-size: 15px; font-weight: 600; color: #fff; background: #111110; padding: 13px 24px; border-radius: 10px; display: flex; align-items: center; gap: 8px; transition: background 0.15s, transform 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.12); }
+    .btn-dark:hover { background: #2D2D2A; transform: translateY(-1px); }
+    .btn-light { font-size: 15px; font-weight: 500; color: #4A4844; background: #fff; border: 1px solid #E0DED7; padding: 13px 24px; border-radius: 10px; transition: border-color 0.15s; }
+    .btn-light:hover { border-color: #C0BDB5; }
+    .hero-note { font-size: 13px; color: #A8A49C; }
 
-    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 1.5rem; position: relative; }
+    /* PREVIEW */
+    .preview-wrap { position: relative; }
+    .preview-card { background: #fff; border: 1px solid #E5E3DC; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.04), 0 20px 60px rgba(0,0,0,0.1); }
+    .preview-topbar { background: #F5F4F1; border-bottom: 1px solid #ECEAE4; padding: 10px 16px; display: flex; align-items: center; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-red { background: #FF5F57; }
+    .dot-yellow { background: #FFBD2E; }
+    .dot-green { background: #28C840; }
+    .preview-body { padding: 20px; }
+    .preview-review { display: flex; gap: 12px; margin-bottom: 14px; }
+    .preview-avatar { width: 36px; height: 36px; border-radius: 50%; background: #EEF2FF; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .preview-meta { flex: 1; }
+    .preview-name { font-size: 14px; font-weight: 600; color: #111110; margin-bottom: 3px; }
+    .preview-stars { display: flex; gap: 1px; margin-bottom: 6px; }
+    .preview-text { font-size: 13px; color: #5A5754; line-height: 1.55; }
+    .preview-reply { background: #F5F4F1; border-left: 3px solid #5B52CC; border-radius: 0 10px 10px 0; padding: 13px 15px; margin-top: 14px; }
+    .preview-reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5B52CC; margin-bottom: 7px; }
+    .preview-reply-text { font-size: 13px; color: #3A3834; line-height: 1.6; }
+    .preview-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .preview-btn-approve { font-size: 13px; font-weight: 600; color: #fff; background: #111110; padding: 8px 16px; border-radius: 8px; }
+    .preview-btn-edit { font-size: 13px; font-weight: 500; color: #6B6963; background: #fff; border: 1px solid #E5E3DC; padding: 8px 16px; border-radius: 8px; }
+    .preview-badge { position: absolute; top: -12px; right: -12px; background: #fff; border: 1px solid #E5E3DC; border-radius: 12px; padding: 10px 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); font-size: 13px; font-weight: 600; color: #111110; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .preview-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
 
-    .hero-bg { position: absolute; top: -120px; left: 50%; transform: translateX(-50%); width: 900px; height: 600px; background: radial-gradient(ellipse at center, rgba(127,119,221,0.18), rgba(127,119,221,0) 60%); pointer-events: none; z-index: 0; }
-    .hero { padding: 5rem 0 4rem; text-align: center; position: relative; z-index: 1; }
-    .badge { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #5A52B5; background: #EFEDFB; border: 1px solid #E0DCFA; padding: 6px 14px; border-radius: 99px; margin-bottom: 1.75rem; }
-    .badge-stars { color: #E8A33D; letter-spacing: 1px; }
-    .hero h1 { font-size: clamp(36px, 5.5vw, 58px); line-height: 1.06; font-weight: 600; letter-spacing: -0.025em; max-width: 740px; margin: 0 auto; }
-    .grad { background: linear-gradient(120deg, #7F77DD, #B3A0F2); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .hero p { font-size: clamp(16px, 2vw, 19px); color: #5F5E5A; max-width: 560px; margin: 1.5rem auto 0; line-height: 1.55; }
-    .hero-actions { display: flex; gap: 12px; justify-content: center; margin-top: 2.25rem; flex-wrap: wrap; }
-    .btn-primary { font-size: 15px; font-weight: 500; color: #fff; background: #1A1916; padding: 14px 28px; border-radius: 11px; box-shadow: 0 4px 14px rgba(26,25,22,0.18); transition: transform 0.15s, box-shadow 0.15s; }
-    .btn-primary:hover { background: #333; transform: translateY(-2px); box-shadow: 0 8px 22px rgba(26,25,22,0.24); }
-    .btn-ghost { font-size: 15px; font-weight: 500; color: #1A1916; background: #fff; border: 1px solid #ECEAE4; padding: 14px 28px; border-radius: 11px; transition: border-color 0.15s, transform 0.15s; }
-    .btn-ghost:hover { border-color: #C9C5BC; transform: translateY(-2px); }
-    .hero-note { font-size: 13px; color: #9E9B93; margin-top: 1.25rem; }
+    /* DIVIDER */
+    .divider { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem; }
+    .divider-line { border: none; border-top: 1px solid #ECEAE4; }
 
-    .preview { max-width: 540px; margin: 3.5rem auto 0; background: #fff; border: 1px solid #ECEAE4; border-radius: 18px; padding: 22px; text-align: left; box-shadow: 0 2px 6px rgba(26,25,22,0.04), 0 24px 60px rgba(26,25,22,0.10); position: relative; z-index: 1; animation: floatIn 0.9s cubic-bezier(0.16,1,0.3,1) 0.35s both; }
-    .pv-review { display: flex; gap: 12px; }
-    .pv-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #E8D9C4, #D6B894); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #7A5A2E; }
-    .pv-name { font-size: 14px; font-weight: 600; }
-    .pv-stars { color: #E8A33D; font-size: 13px; letter-spacing: 1px; margin-top: 1px; }
-    .pv-text { font-size: 14px; color: #4A4844; line-height: 1.5; margin-top: 8px; }
-    .pv-reply { margin-top: 16px; background: #FAF9F6; border: 1px solid #EFEDE7; border-left: 3px solid #7F77DD; border-radius: 10px; padding: 14px; }
-    .pv-reply-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .pv-ai { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #7F77DD; background: #EFEDFB; padding: 2px 8px; border-radius: 6px; }
-    .pv-reply-text { font-size: 13px; color: #4A4844; line-height: 1.55; }
-    .pv-actions { display: flex; gap: 8px; margin-top: 14px; }
-    .pv-approve { font-size: 13px; font-weight: 500; color: #fff; background: #1A1916; padding: 8px 16px; border-radius: 8px; }
-    .pv-edit { font-size: 13px; font-weight: 500; color: #4A4844; background: #fff; border: 1px solid #ECEAE4; padding: 8px 16px; border-radius: 8px; }
+    /* HOW IT WORKS */
+    .how-wrap { max-width: 1100px; margin: 0 auto; padding: 5rem 2.5rem; }
+    .section-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #A8A49C; margin-bottom: 1rem; }
+    .section-h2 { font-size: clamp(28px, 3vw, 40px); font-weight: 800; letter-spacing: -0.03em; color: #111110; margin-bottom: 3.5rem; max-width: 480px; line-height: 1.15; }
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #E8E6E0; border-radius: 16px; overflow: hidden; }
+    .step { background: #fff; padding: 32px 28px; }
+    .step-number { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #A8A49C; margin-bottom: 24px; }
+    .step-icon { width: 40px; height: 40px; border-radius: 11px; background: #F5F4F1; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: #5B52CC; }
+    .step h3 { font-size: 17px; font-weight: 700; color: #111110; margin-bottom: 10px; letter-spacing: -0.01em; }
+    .step p { font-size: 14px; color: #6B6963; line-height: 1.65; }
 
-    .section { padding: 4.5rem 0; position: relative; }
-    .section-label { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9E9B93; text-align: center; }
-    .section-title { font-size: clamp(24px, 3vw, 34px); font-weight: 600; letter-spacing: -0.015em; text-align: center; margin-top: 10px; }
+    /* FEATURES */
+    .features-wrap { max-width: 1100px; margin: 0 auto; padding: 1rem 2.5rem 5rem; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 3rem; }
+    .feature-card { background: #fff; border: 1px solid #E8E6E0; border-radius: 16px; padding: 28px; }
+    .feature-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+    .feature-icon-purple { background: #EEEDFB; color: #5B52CC; }
+    .feature-icon-green { background: #DCFCE7; color: #16A34A; }
+    .feature-icon-amber { background: #FEF3C7; color: #D97706; }
+    .feature-card h3 { font-size: 16px; font-weight: 700; color: #111110; margin-bottom: 8px; letter-spacing: -0.01em; }
+    .feature-card p { font-size: 14px; color: #6B6963; line-height: 1.65; }
 
-    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 2.75rem; }
-    .step { background: #fff; border: 1px solid #ECEAE4; border-radius: 16px; padding: 26px; transition: transform 0.2s, box-shadow 0.2s; }
-    .step:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(26,25,22,0.08); }
-    .step-num { width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(135deg, #EFEDFB, #E3DEFA); color: #6A61C9; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
-    .step h3 { font-size: 16px; font-weight: 600; margin: 18px 0 8px; }
-    .step p { font-size: 14px; color: #5F5E5A; line-height: 1.5; }
+    /* PRICING */
+    .pricing-wrap { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem 5rem; }
+    .pricing-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    .pricing-left h2 { font-size: clamp(28px, 3vw, 40px); font-weight: 800; letter-spacing: -0.03em; color: #111110; margin-bottom: 12px; line-height: 1.15; }
+    .pricing-left p { font-size: 16px; color: #6B6963; line-height: 1.65; }
+    .price-card { background: #111110; border-radius: 20px; padding: 36px; color: #fff; }
+    .price-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 16px; }
+    .price-amount { font-size: 52px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+    .price-period { font-size: 15px; font-weight: 400; color: rgba(255,255,255,0.45); margin-left: 4px; }
+    .price-vat { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 4px; margin-bottom: 28px; }
+    .price-features { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+    .price-feature { display: flex; align-items: center; gap: 10px; font-size: 14px; color: rgba(255,255,255,0.75); }
+    .price-check { width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .price-check svg { color: rgba(255,255,255,0.6); }
+    .price-cta { display: block; text-align: center; font-size: 15px; font-weight: 700; color: #111110; background: #fff; padding: 14px; border-radius: 11px; transition: opacity 0.15s; }
+    .price-cta:hover { opacity: 0.9; }
 
-    .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 28px; margin-top: 2.75rem; max-width: 780px; margin-left: auto; margin-right: auto; }
-    .feature { font-size: 15px; color: #3A3934; display: flex; align-items: center; gap: 12px; }
-    .feature-check { width: 22px; height: 22px; border-radius: 7px; background: #EAF3DE; color: #3B6D11; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    /* CTA BAND */
+    .cta-wrap { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem 5rem; }
+    .cta-band { background: #111110; border-radius: 20px; padding: 4.5rem 3rem; text-align: center; position: relative; overflow: hidden; }
+    .cta-band::before { content: ''; position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 500px; height: 400px; background: radial-gradient(ellipse at center, rgba(91,82,204,0.35), transparent 65%); pointer-events: none; }
+    .cta-band h2 { font-size: clamp(26px, 3.5vw, 42px); font-weight: 800; color: #fff; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 14px; position: relative; }
+    .cta-band p { font-size: 16px; color: rgba(255,255,255,0.5); margin-bottom: 2rem; position: relative; }
+    .cta-band a { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #111110; background: #fff; padding: 14px 28px; border-radius: 11px; position: relative; transition: opacity 0.15s; }
+    .cta-band a:hover { opacity: 0.9; }
 
-    .price-card { background: #fff; border: 1px solid #E0DCFA; border-radius: 18px; padding: 34px; max-width: 380px; margin: 2.75rem auto 0; box-shadow: 0 2px 6px rgba(26,25,22,0.04), 0 20px 50px rgba(127,119,221,0.14); }
-    .price-name { font-size: 18px; font-weight: 600; }
-    .price-amount { font-size: 44px; font-weight: 600; margin-top: 10px; letter-spacing: -0.02em; }
-    .price-amount span { font-size: 15px; font-weight: 400; color: #9E9B93; letter-spacing: 0; }
-    .price-list { margin: 22px 0; display: flex; flex-direction: column; gap: 12px; }
-    .price-cta { display: block; text-align: center; font-size: 15px; font-weight: 500; color: #fff; background: #1A1916; padding: 14px; border-radius: 11px; transition: background 0.15s; }
-    .price-cta:hover { background: #333; }
+    /* FOOTER */
+    .footer-wrap { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem; }
+    .footer { border-top: 1px solid #E8E6E0; padding: 2.25rem 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-logo { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; color: #111110; display: flex; align-items: center; gap: 8px; }
+    .footer-links { display: flex; align-items: center; gap: 20px; }
+    .footer-link { font-size: 13px; color: #A8A49C; transition: color 0.15s; }
+    .footer-link:hover { color: #6B6963; }
 
-    .cta-band { background: linear-gradient(135deg, #1A1916, #2A2540); border-radius: 22px; padding: 4rem 2rem; text-align: center; margin: 2rem 0; position: relative; overflow: hidden; }
-    .cta-band::before { content: ''; position: absolute; top: -80px; right: -40px; width: 320px; height: 320px; background: radial-gradient(circle, rgba(127,119,221,0.4), transparent 65%); pointer-events: none; }
-    .cta-band h2 { color: #fff; font-size: clamp(24px, 3vw, 34px); font-weight: 600; position: relative; }
-    .cta-band p { color: #B6B1C9; margin-top: 12px; font-size: 16px; position: relative; }
-    .cta-band a { display: inline-block; margin-top: 1.75rem; background: #fff; color: #1A1916; font-size: 15px; font-weight: 500; padding: 14px 30px; border-radius: 11px; position: relative; transition: transform 0.15s; }
-    .cta-band a:hover { transform: translateY(-2px); }
-
-    .footer { border-top: 1px solid #ECEAE4; padding: 2rem 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-    .footer-brand { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .footer-copy { font-size: 13px; color: #9E9B93; }
-
-    @media (max-width: 720px) {
-      .steps { grid-template-columns: 1fr; }
-      .features { grid-template-columns: 1fr; gap: 14px; }
-      .nav { padding: 0 1.25rem; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .anim, .preview { animation: none; opacity: 1; }
+    @media (max-width: 860px) {
+      .hero-wrap { grid-template-columns: 1fr; gap: 3rem; padding: 3rem 1.5rem; }
+      .preview-badge { display: none; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .pricing-inner { grid-template-columns: 1fr; gap: 2rem; }
+      .how-wrap, .features-wrap, .pricing-wrap, .cta-wrap, .footer-wrap, .divider { padding-left: 1.5rem; padding-right: 1.5rem; }
+      .nav { padding: 0 1.5rem; }
     }
   `
 
@@ -108,114 +144,189 @@ export default function HomePage() {
     <>
       <style>{css}</style>
       <div className="shell">
+
+        {/* NAV */}
         <nav className="nav">
-          <div className="nav-logo"><span className="nav-dot" />Revio</div>
+          <div className="nav-logo">
+            <div className="logo-mark"><Star size={13} fill="white" /></div>
+            Revio
+          </div>
           <div className="nav-links">
             <a className="nav-login" href="/login">Log in</a>
-            <a className="nav-cta" href={primaryHref}>{primaryLabel}</a>
+            <a className="nav-cta" href={primaryHref}>
+              {primaryLabel} <ArrowRight size={14} />
+            </a>
           </div>
         </nav>
 
-        <div className="wrap">
-          <div className="hero-bg" />
-          <header className="hero">
-            <div className="badge anim d1"><span className="badge-stars">★★★★★</span> AI replies for your Google reviews</div>
-            <h1 className="anim d2">Reply to every Google review, <span className="grad">automatically</span></h1>
-            <p className="anim d3">Revio reads each new review, drafts a reply in your voice, and flags anything sensitive for you to check. Built for small UK businesses.</p>
-            <div className="hero-actions anim d4">
-              <a className="btn-primary" href={primaryHref}>{primaryLabel}</a>
-              <a className="btn-ghost" href="#how">See how it works</a>
+        {/* HERO */}
+        <div className="hero-wrap">
+          <div className="hero-left">
+            <div className="hero-tag">
+              <span className="hero-tag-dot" />
+              For UK small businesses
             </div>
-            <div className="hero-note anim d4">£18/month · cancel anytime</div>
+            <h1 className="hero-h1">
+              Your Google reviews,<br />
+              replied to <em>automatically.</em>
+            </h1>
+            <p className="hero-sub">
+              Connect once. Revio reads every new review, writes a reply in your tone, and posts it — or holds it for your approval if anything looks off.
+            </p>
+            <div className="hero-actions">
+              <a className="btn-dark" href={primaryHref}>
+                {primaryLabel} <ArrowRight size={15} />
+              </a>
+              <a className="btn-light" href="#how">See how it works</a>
+            </div>
+            <div className="hero-note">£18/month · no setup fee · cancel anytime</div>
+          </div>
 
-            <div className="preview">
-              <div className="pv-review">
-                <div className="pv-avatar">S</div>
-                <div>
-                  <div className="pv-name">Sarah M.</div>
-                  <div className="pv-stars">★★★★☆</div>
+          <div className="preview-wrap">
+            <div className="preview-badge">
+              <span className="preview-badge-dot" />
+              Reply posted to Google
+            </div>
+            <div className="preview-card">
+              <div className="preview-topbar">
+                <div className="dot dot-red" />
+                <div className="dot dot-yellow" />
+                <div className="dot dot-green" />
+              </div>
+              <div className="preview-body">
+                <div className="preview-review">
+                  <div className="preview-avatar">S</div>
+                  <div className="preview-meta">
+                    <div className="preview-name">Sarah M.</div>
+                    <div className="preview-stars">
+                      {[1,2,3,4].map(n => <Star key={n} size={12} fill="#F59E0B" color="#F59E0B" />)}
+                      <Star size={12} fill="none" color="#E5E3DC" />
+                    </div>
+                    <div className="preview-text">Lovely coffee and really friendly staff, though the wait was a bit long at peak time.</div>
+                  </div>
+                </div>
+                <div className="preview-reply">
+                  <div className="preview-reply-tag">Drafted by Revio</div>
+                  <div className="preview-reply-text">Thank you so much, Sarah — we are really glad you enjoyed the coffee and found our team welcoming. We hear you on the wait times and are actively working on improving flow during busy periods. Hope to see you again soon!</div>
+                </div>
+                <div className="preview-actions">
+                  <span className="preview-btn-approve">Approve &amp; post</span>
+                  <span className="preview-btn-edit">Edit reply</span>
                 </div>
               </div>
-              <div className="pv-text">Lovely coffee and friendly staff, though the wait was a little long at peak time.</div>
-              <div className="pv-reply">
-                <div className="pv-reply-head"><span className="pv-ai">Drafted by Revio</span></div>
-                <div className="pv-reply-text">Thank you so much, Sarah. We are delighted you enjoyed the coffee and our team. We are working on speeding up service at busy times and hope to see you again soon.</div>
-              </div>
-              <div className="pv-actions">
-                <span className="pv-approve">Approve &amp; post</span>
-                <span className="pv-edit">Edit</span>
-              </div>
             </div>
-          </header>
+          </div>
         </div>
 
-        <section className="section wrap" id="how">
-          <div className="section-label">How it works</div>
-          <h2 className="section-title">From new review to posted reply</h2>
-          <div className="steps">
+        <div className="divider"><hr className="divider-line" /></div>
+
+        {/* HOW IT WORKS */}
+        <div className="how-wrap" id="how">
+          <div className="section-eyebrow">How it works</div>
+          <h2 className="section-h2">From new review to posted reply in minutes</h2>
+          <div className="steps-grid">
             <div className="step">
-              <div className="step-num">1</div>
+              <div className="step-number">01</div>
+              <div className="step-icon"><Star size={18} /></div>
               <h3>Connect Google</h3>
-              <p>Link your Google Business Profile in a couple of clicks. Revio pulls in your reviews automatically.</p>
+              <p>Link your Google Business Profile in two clicks. Revio pulls in your existing reviews and watches for new ones.</p>
             </div>
             <div className="step">
-              <div className="step-num">2</div>
-              <h3>Revio analyses</h3>
-              <p>Every new review is scored for sentiment and risk by AI, then a reply is drafted in your tone.</p>
+              <div className="step-number">02</div>
+              <div className="step-icon"><Zap size={18} /></div>
+              <h3>Revio reads &amp; drafts</h3>
+              <p>Each review is scored for sentiment and risk. A reply is drafted instantly, written in your tone.</p>
             </div>
             <div className="step">
-              <div className="step-num">3</div>
-              <h3>Approve or automate</h3>
-              <p>Low-risk replies post on their own. Anything sensitive waits for your approval first.</p>
+              <div className="step-number">03</div>
+              <div className="step-icon"><Shield size={18} /></div>
+              <h3>Posts or waits</h3>
+              <p>Low-risk reviews post automatically. Anything sensitive is held for your approval before going live.</p>
             </div>
           </div>
-        </section>
+        </div>
 
-        <section className="section wrap">
-          <div className="section-label">Features</div>
-          <h2 className="section-title">Everything you need to stay on top of reviews</h2>
-          <div className="features">
-            <div className="feature"><span className="feature-check">✓</span>AI-powered review analysis</div>
-            <div className="feature"><span className="feature-check">✓</span>Automated reply generation in your voice</div>
-            <div className="feature"><span className="feature-check">✓</span>Email alerts for flagged reviews</div>
-            <div className="feature"><span className="feature-check">✓</span>Approve, edit or reject every reply</div>
-            <div className="feature"><span className="feature-check">✓</span>Google Reviews integration</div>
-            <div className="feature"><span className="feature-check">✓</span>Risk-based handling, high-risk never auto-posts</div>
-          </div>
-        </section>
-
-        <section className="section wrap">
-          <div className="section-label">Pricing</div>
-          <h2 className="section-title">One simple plan</h2>
-          <div className="price-card">
-            <div className="price-name">Revio Pro</div>
-            <div className="price-amount">£18<span>/month inc VAT</span></div>
-            <div className="price-list">
-              <div className="feature"><span className="feature-check">✓</span>One Google Business Profile location</div>
-              <div className="feature"><span className="feature-check">✓</span>Unlimited reviews and AI replies</div>
-              <div className="feature"><span className="feature-check">✓</span>Automated reply generation</div>
-              <div className="feature"><span className="feature-check">✓</span>Email alerts for flagged reviews</div>
-              <div className="feature"><span className="feature-check">✓</span>Google Reviews integration</div>
-              <div className="feature"><span className="feature-check">✓</span>Rating goal calculator & live tracker</div>
+        {/* FEATURES */}
+        <div className="features-wrap">
+          <div className="section-eyebrow">Why Revio</div>
+          <h2 className="section-h2">Built to handle the edge cases</h2>
+          <div className="features-grid">
+            <div className="feature-card">
+              <div className="feature-icon feature-icon-purple"><Zap size={20} /></div>
+              <h3>Replies in your voice</h3>
+              <p>Revio learns the tone of your business and writes replies that sound like you — not a corporate template.</p>
             </div>
-            <a className="price-cta" href={primaryHref}>{primaryLabel}</a>
+            <div className="feature-card">
+              <div className="feature-icon feature-icon-green"><Shield size={20} /></div>
+              <h3>Safe by default</h3>
+              <p>High-risk and sensitive reviews never auto-post. They wait in your dashboard with a flag until you decide what to say.</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon feature-icon-amber"><Star size={20} /></div>
+              <h3>Rating goal tracker</h3>
+              <p>See exactly how many 5-star reviews you need to reach your next milestone — updated live from your real data.</p>
+            </div>
           </div>
-        </section>
+        </div>
 
-        <section className="wrap">
+        <div className="divider"><hr className="divider-line" /></div>
+
+        {/* PRICING */}
+        <div className="pricing-wrap" style={{paddingTop: '5rem'}}>
+          <div className="pricing-inner">
+            <div className="pricing-left">
+              <div className="section-eyebrow">Pricing</div>
+              <h2>One plan.<br />No surprises.</h2>
+              <p>Everything you need to stay on top of your Google reviews. One business location, unlimited reviews, cancel any time.</p>
+            </div>
+            <div className="price-card">
+              <div className="price-label">Revio Pro</div>
+              <div className="price-amount">£18<span className="price-period">/month</span></div>
+              <div className="price-vat">inc. VAT</div>
+              <div className="price-features">
+                {[
+                  'One Google Business Profile location',
+                  'Unlimited reviews & AI replies',
+                  'Automated reply generation',
+                  'Email alerts for flagged reviews',
+                  'Rating goal tracker & calculator',
+                  'Risk-based auto-post controls',
+                ].map(f => (
+                  <div key={f} className="price-feature">
+                    <div className="price-check"><CheckCircle size={11} /></div>
+                    {f}
+                  </div>
+                ))}
+              </div>
+              <a className="price-cta" href={primaryHref}>{primaryLabel}</a>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA BAND */}
+        <div className="cta-wrap">
           <div className="cta-band">
-            <h2>Stop letting reviews pile up</h2>
-            <p>Set Revio up once and let it handle the replies.</p>
-            <a href={primaryHref}>{primaryLabel}</a>
+            <h2>Stop letting reviews<br />go unanswered.</h2>
+            <p>Set Revio up once. Let it handle the replies.</p>
+            <a href={primaryHref}>{primaryLabel} <ArrowRight size={15} /></a>
           </div>
-        </section>
+        </div>
 
-        <footer className="wrap">
+        {/* FOOTER */}
+        <div className="footer-wrap">
           <div className="footer">
-            <div className="footer-brand"><span className="nav-dot" />Revio</div>
-            <div className="footer-copy">© 2026 Revio · AI review management for UK businesses · <a href="/legal" style={{color:'#9E9B93',textDecoration:'underline'}}>Terms &amp; Privacy</a> · <a href="/contact" style={{color:'#9E9B93',textDecoration:'underline'}}>Contact</a></div>
+            <div className="footer-logo">
+              <div className="logo-mark"><Star size={11} fill="white" /></div>
+              Revio
+            </div>
+            <div className="footer-links">
+              <a className="footer-link" href="/legal">Terms &amp; Privacy</a>
+              <a className="footer-link" href="/contact">Contact</a>
+              <span className="footer-link">© 2026 Revio</span>
+            </div>
           </div>
-        </footer>
+        </div>
+
       </div>
     </>
   )
