@@ -26,6 +26,7 @@ class Review(Base):
 
     # Status
     status = Column(String, default="pending", nullable=False)
+    reply_at = Column(DateTime, nullable=True)  # when to auto-post (scheduled reviews)
 
     # Timestamps
     posted_at = Column(DateTime, nullable=True)

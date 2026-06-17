@@ -15,6 +15,7 @@ type Review = {
   status: string
   generated_reply: string
   created_at: string
+  reply_at?: string
 }
 
 function initials(name: string) {
@@ -42,6 +43,15 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
+function timeUntil(dateStr: string) {
+  const diff = new Date(dateStr).getTime() - Date.now()
+  if (diff <= 0) return 'any moment'
+  const hrs = Math.floor(diff / 3600000)
+  if (hrs < 1) return 'less than 1h'
+  if (hrs < 24) return `~${hrs}h`
+  return `~${Math.floor(hrs / 24)}d`
+}
+
 const RISK_BORDER: Record<string, string> = {
   low: '#22C55E',
   medium: '#F59E0B',
@@ -49,11 +59,12 @@ const RISK_BORDER: Record<string, string> = {
 }
 
 const STATUS_PILL: Record<string, { bg: string; color: string; label: string }> = {
-  pending:  { bg: '#FEF3C7', color: '#92400E', label: 'Pending' },
-  approved: { bg: '#DCFCE7', color: '#166534', label: 'Approved' },
-  posted:   { bg: '#DBEAFE', color: '#1E40AF', label: 'Posted' },
-  rejected: { bg: '#F1F5F9', color: '#475569', label: 'Rejected' },
-  flagged:  { bg: '#FEE2E2', color: '#991B1B', label: 'Flagged' },
+  pending:   { bg: '#FEF3C7', color: '#92400E', label: 'Pending' },
+  scheduled: { bg: '#EDE9FE', color: '#5B21B6', label: 'Scheduled' },
+  approved:  { bg: '#DCFCE7', color: '#166534', label: 'Approved' },
+  posted:    { bg: '#DBEAFE', color: '#1E40AF', label: 'Posted' },
+  rejected:  { bg: '#F1F5F9', color: '#475569', label: 'Rejected' },
+  flagged:   { bg: '#FEE2E2', color: '#991B1B', label: 'Flagged' },
 }
 
 export default function DashboardPage() {
@@ -144,6 +155,11 @@ export default function DashboardPage() {
 
   const handleReject = async (id: string) => {
     await api.post('/reviews/' + id + '/reject')
+    fetchReviews()
+  }
+
+  const handleCancelSchedule = async (id: string) => {
+    await api.post('/reviews/' + id + '/cancel-schedule')
     fetchReviews()
   }
 
@@ -268,6 +284,9 @@ export default function DashboardPage() {
     .reply-textarea { width: 100%; font-size: 13px; color: #1A1916; line-height: 1.65; background: #fff; border: 1px solid #D0CEC7; border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 80px; font-family: inherit; outline: none; }
     .reply-textarea:focus { border-color: #7F77DD; }
     .flagged-notice { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #B91C1C; font-weight: 500; margin-bottom: 14px; }
+    .scheduled-notice { background: #F5F3FF; border: 1px solid #DDD6FE; border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: #5B21B6; font-weight: 500; margin-bottom: 14px; }
+    .btn-cancel-schedule { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 6px; cursor: pointer; border: 1px solid #C4B5FD; background: #fff; color: #7C3AED; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
+    .btn-cancel-schedule:hover { background: #F5F3FF; }
     .review-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .btn-approve { font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 8px; cursor: pointer; border: none; background: #1A1916; color: #fff; font-family: inherit; transition: background 0.15s; }
     .btn-approve:hover { background: #333; }
@@ -312,7 +331,8 @@ export default function DashboardPage() {
     }
   `
 
-  const FILTERS = ['all', 'pending', 'flagged', 'approved', 'posted']
+  const scheduledCount = reviews.filter(r => r.status === 'scheduled').length
+  const FILTERS = ['all', 'pending', 'scheduled', 'flagged', 'approved', 'posted']
 
   return (
     <>
@@ -440,6 +460,7 @@ export default function DashboardPage() {
                     <button key={f} className={`filter-tab${filter === f ? ' active' : ''}`} onClick={() => setFilter(f)}>
                       {f.charAt(0).toUpperCase() + f.slice(1)}
                       {f === 'pending' && pendingCount > 0 && ` (${pendingCount})`}
+                      {f === 'scheduled' && scheduledCount > 0 && ` (${scheduledCount})`}
                     </button>
                   ))}
                 </div>
@@ -494,6 +515,13 @@ export default function DashboardPage() {
 
                             <p className="review-text">{review.review_text}</p>
 
+                            {review.status === 'scheduled' && review.reply_at && (
+                              <div className="scheduled-notice">
+                                <span><Clock size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />Auto-replying in {timeUntil(review.reply_at)} — will post to Google automatically</span>
+                                <button className="btn-cancel-schedule" onClick={() => handleCancelSchedule(review.id)}>Cancel</button>
+                              </div>
+                            )}
+
                             {review.status === 'flagged' ? (
                               <div className="flagged-notice">
                                 <AlertTriangle size={15} />
@@ -503,7 +531,7 @@ export default function DashboardPage() {
                               <div className="reply-section">
                                 <div className="reply-header">
                                   <span className="reply-tag">AI Draft</span>
-                                  {review.status === 'pending' && (
+                                  {(review.status === 'pending' || review.status === 'scheduled') && (
                                     <button className="reply-edit-btn" onClick={() => isEditing
                                       ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
                                       : setEditing(e => ({ ...e, [review.id]: review.generated_reply }))
@@ -526,6 +554,14 @@ export default function DashboardPage() {
                                   <button className="btn-edit-reply" onClick={() => setEditing(e => ({ ...e, [review.id]: review.generated_reply }))}>Edit reply</button>
                                 )}
                                 <button className="btn-reject" onClick={() => handleReject(review.id)}>Reject</button>
+                              </div>
+                            )}
+                            {review.status === 'scheduled' && isEditing && (
+                              <div className="review-actions">
+                                <button className="btn-approve" disabled={approving === review.id} onClick={() => handleApprove(review.id)}>
+                                  {approving === review.id ? 'Posting…' : 'Post now instead'}
+                                </button>
+                                <button className="btn-edit-reply" onClick={() => setEditing(e => { const n = { ...e }; delete n[review.id]; return n })}>Cancel edit</button>
                               </div>
                             )}
                           </div>

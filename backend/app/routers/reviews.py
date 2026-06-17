@@ -104,6 +104,28 @@ def reject_reply(
     return {"message": "Reply rejected", "review_id": str(review.id)}
 
 
+@router.post("/{review_id}/cancel-schedule")
+def cancel_schedule(
+    review_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    tenant: Tenant = Depends(require_subscription)
+):
+    review = db.query(Review).filter(
+        Review.id == review_id,
+        Review.tenant_id == current_user.tenant_id
+    ).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    if review.status != "scheduled":
+        raise HTTPException(status_code=400, detail="Review is not scheduled")
+    review.status = "pending"
+    review.reply_at = None
+    db.commit()
+    db.refresh(review)
+    return {"message": "Auto-reply cancelled", "review_id": str(review.id)}
+
+
 class ManualReviewInput(BaseModel):
     reviewer_name: str
     rating: int

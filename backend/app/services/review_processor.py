@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from app.models.review import Review
 from app.services.ai_service import analyze_review, generate_reply
@@ -31,8 +32,16 @@ def process_review(review: Review, db: Session, business_name: str = "Our Busine
     else:
         reply = generate_reply(review.review_text or "", review.rating, business_name)
         review.generated_reply = reply
-        review.status = "approved"
-        logger.info("Review %s approved for auto-reply", review.id)
+        if review.rating >= 4:
+            # Low-risk, positive review: schedule auto-reply after 24h delay
+            review.status = "scheduled"
+            review.reply_at = datetime.now(timezone.utc) + timedelta(hours=24)
+            logger.info("Review %s scheduled for auto-reply in 24h", review.id)
+        else:
+            # Low-risk but not strongly positive: still needs manual approval
+            review.status = "pending"
+            logger.info("Review %s queued for manual approval", review.id)
+            _notify_approval_needed(review)
 
     db.commit()
     db.refresh(review)

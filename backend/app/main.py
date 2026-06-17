@@ -1,12 +1,35 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.routers import auth, reviews, billing, admin, google
 from app.utils.dependencies import get_current_user
+from app.database import engine
+from app.tasks.scheduler import start_scheduler, stop_scheduler
+
+
+def _migrate_db():
+    """Add any new columns that don't exist yet (safe to run on every startup)."""
+    with engine.connect() as conn:
+        conn.execute(text(
+            "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reply_at TIMESTAMP;"
+        ))
+        conn.commit()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    _migrate_db()
+    start_scheduler()
+    yield
+    stop_scheduler()
+
 
 app = FastAPI(
     title="Review SaaS API",
     description="AI-powered review management platform",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
