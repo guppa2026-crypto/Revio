@@ -20,6 +20,9 @@ def _migrate_db():
         conn.execute(text(
             "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tone_guidance VARCHAR;"
         ))
+        conn.execute(text(
+            "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS sample_replies VARCHAR;"
+        ))
         conn.commit()
 
 

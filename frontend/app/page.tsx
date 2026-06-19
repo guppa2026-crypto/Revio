@@ -297,13 +297,13 @@ export default function HomePage() {
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon feature-icon-purple"><Zap size={20} /></div>
-              <h3>Replies in your voice</h3>
-              <p>Every reply references the specific details of that review — what the customer praised or complained about — instead of a generic template.</p>
+              <h3>Learns your tone</h3>
+              <p>Describe your style or paste a few of your own past replies — Revio picks up your vocabulary and writes in your voice, not a generic template.</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon feature-icon-green"><Shield size={20} /></div>
-              <h3>Safe by default</h3>
-              <p>High-risk and sensitive reviews never auto-post. They wait in your dashboard with a flag until you decide what to say.</p>
+              <h3>Risk flagging &amp; approval queue</h3>
+              <p>Every review is scored for risk. High-risk and sensitive ones are flagged and held in a manual approval queue — nothing sensitive ever auto-posts.</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon feature-icon-amber"><Star size={20} /></div>

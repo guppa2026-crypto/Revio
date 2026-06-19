@@ -3,18 +3,61 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 
+const EXAMPLES = [
+  {
+    tab: '5-star',
+    name: 'Sarah M.',
+    avatar: 'S',
+    review: 'Lovely coffee and really friendly staff, though the wait was a bit long at peak time.',
+    reply: "Thank you so much, Sarah — we're really glad you enjoyed the coffee and found our team welcoming. We hear you on the wait times and are actively working on improving flow during busy periods. Hope to see you again soon!",
+  },
+  {
+    tab: '3-star',
+    name: 'Tom R.',
+    avatar: 'T',
+    review: 'Food was decent but our table wasn\'t ready 20 minutes after our booking time.',
+    reply: "Tom, you're right to flag this — a 20 minute wait on a booking isn't the standard we hold ourselves to, and we're sorry it fell short. We've spoken to the team about tightening up table turnaround on busy evenings. We'd love another chance to get it right — hope to see you again soon.",
+  },
+  {
+    tab: '1-star',
+    name: 'Aisha K.',
+    avatar: 'A',
+    review: 'Ordered a refund two weeks ago and still haven\'t heard anything back. Really poor service.',
+    reply: "Aisha, this is genuinely not okay, and we're sorry it's taken this long — a two week silence on a refund is on us, not you. We've reviewed how refund requests are being handled and are fixing the gap that let this slip through. Please reach out to us directly so we can sort this out for you right away.",
+  },
+]
+
 export default function OnboardingPage() {
   const router = useRouter()
   const [connecting, setConnecting] = useState(false)
+  const [activeExample, setActiveExample] = useState(0)
+  const [toneGuidance, setToneGuidance] = useState('')
+  const [toneSaved, setToneSaved] = useState(false)
+  const [toneSaving, setToneSaving] = useState(false)
 
   const handleConnectGoogle = async () => {
     setConnecting(true)
     try {
+      if (toneGuidance.trim()) {
+        await api.put('/tenant/tone-guidance', { tone_guidance: toneGuidance }).catch(() => {})
+      }
       const res = await api.get('/google/connect')
       window.location.href = res.data.auth_url
     } catch {
       setConnecting(false)
       alert('Failed to start Google connection.')
+    }
+  }
+
+  const handleSaveTone = async () => {
+    setToneSaving(true)
+    try {
+      await api.put('/tenant/tone-guidance', { tone_guidance: toneGuidance })
+      setToneSaved(true)
+    } catch {
+      alert('Failed to save. You can always add this later in Settings.')
+    } finally {
+      setToneSaving(false)
     }
   }
 
@@ -40,7 +83,11 @@ export default function OnboardingPage() {
     .btn-ghost:hover { color: #444; }
     .google-icon { margin-right: 8px; }
     .preview { background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 12px; padding: 16px; margin-bottom: 2rem; }
-    .preview-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9E9B93; margin-bottom: 10px; }
+    .preview-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .preview-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9E9B93; }
+    .preview-tabs { display: flex; gap: 6px; }
+    .preview-tab { font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 999px; border: 1px solid #ECEAE4; background: #fff; color: #9E9B93; cursor: pointer; font-family: inherit; }
+    .preview-tab.active { background: #1A1916; color: #fff; border-color: #1A1916; }
     .preview-review { display: flex; gap: 10px; margin-bottom: 10px; }
     .preview-avatar { width: 28px; height: 28px; border-radius: 50%; background: #EEF2FF; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
     .preview-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
@@ -48,6 +95,14 @@ export default function OnboardingPage() {
     .preview-reply { background: #fff; border-left: 3px solid #7F77DD; border-radius: 0 8px 8px 0; padding: 10px 12px; }
     .preview-reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6A61C9; margin-bottom: 5px; }
     .preview-reply-text { font-size: 12px; color: #3A3834; line-height: 1.55; }
+    .tone-field { margin-bottom: 2rem; }
+    .tone-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .tone-field-sub { font-size: 12px; color: #9E9B93; margin-bottom: 8px; line-height: 1.5; }
+    .tone-field textarea { width: 100%; font-size: 13px; color: #1A1916; background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 8px; padding: 10px 12px; font-family: inherit; outline: none; resize: vertical; min-height: 64px; }
+    .tone-field textarea:focus { border-color: #7F77DD; background: #fff; }
+    .tone-save { font-size: 12px; font-weight: 600; color: #6A61C9; background: none; border: none; cursor: pointer; padding: 8px 0 0; font-family: inherit; }
+    .tone-saved { font-size: 12px; color: #3B6D11; padding-top: 8px; }
+    .connect-hint { font-size: 12px; color: #9E9B93; text-align: center; margin-top: 4px; margin-bottom: 14px; }
   `
 
   return (
@@ -60,18 +115,49 @@ export default function OnboardingPage() {
           <p className="sub">Two steps to get AI replies on your Google reviews. Revio manages one Google Business Profile location per account.</p>
 
           <div className="preview">
-            <div className="preview-label">What you'll get</div>
+            <div className="preview-label-row">
+              <div className="preview-label">What you'll get</div>
+              <div className="preview-tabs">
+                {EXAMPLES.map((ex, i) => (
+                  <button
+                    key={ex.tab}
+                    type="button"
+                    className={`preview-tab${i === activeExample ? ' active' : ''}`}
+                    onClick={() => setActiveExample(i)}
+                  >
+                    {ex.tab}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="preview-review">
-              <div className="preview-avatar">S</div>
+              <div className="preview-avatar">{EXAMPLES[activeExample].avatar}</div>
               <div>
-                <div className="preview-name">Sarah M.</div>
-                <div className="preview-text">Lovely coffee and really friendly staff, though the wait was a bit long at peak time.</div>
+                <div className="preview-name">{EXAMPLES[activeExample].name}</div>
+                <div className="preview-text">{EXAMPLES[activeExample].review}</div>
               </div>
             </div>
             <div className="preview-reply">
               <div className="preview-reply-tag">Drafted by Revio</div>
-              <div className="preview-reply-text">Thank you so much, Sarah — we're really glad you enjoyed the coffee and found our team welcoming. We hear you on the wait times and are actively working on improving flow during busy periods. Hope to see you again soon!</div>
+              <div className="preview-reply-text">{EXAMPLES[activeExample].reply}</div>
             </div>
+          </div>
+
+          <div className="tone-field">
+            <label>Want replies to sound more like you? (optional)</label>
+            <div className="tone-field-sub">Describe your tone in a sentence — you can always add or change this later in Settings.</div>
+            <textarea
+              value={toneGuidance}
+              onChange={e => { setToneGuidance(e.target.value); setToneSaved(false) }}
+              maxLength={1000}
+              placeholder="e.g. Friendly and a bit informal, we're a small family-run café and like to mention staff by name."
+            />
+            {toneGuidance.trim() && !toneSaved && (
+              <button type="button" className="tone-save" onClick={handleSaveTone} disabled={toneSaving}>
+                {toneSaving ? 'Saving…' : 'Save tone'}
+              </button>
+            )}
+            {toneSaved && <div className="tone-saved">Saved — Revio will use this for your replies.</div>}
           </div>
 
           <div className="steps">
@@ -102,6 +188,7 @@ export default function OnboardingPage() {
             <span className="google-icon">G</span>
             {connecting ? 'Opening Google…' : 'Connect Google Business Profile'}
           </button>
+          <div className="connect-hint">Takes under a minute · We only request reply-management access</div>
           <button className="btn-ghost" onClick={() => router.push('/dashboard')}>
             Skip for now → go to dashboard
           </button>

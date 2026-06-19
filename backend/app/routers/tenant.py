@@ -15,11 +15,16 @@ def get_profile(
     current_user: User = Depends(get_current_user),
 ):
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
-    return {"name": tenant.name, "tone_guidance": tenant.tone_guidance or ""}
+    return {
+        "name": tenant.name,
+        "tone_guidance": tenant.tone_guidance or "",
+        "sample_replies": tenant.sample_replies or "",
+    }
 
 
 class ToneGuidanceUpdate(BaseModel):
     tone_guidance: str = Field(max_length=1000)
+    sample_replies: str = Field(default="", max_length=4000)
 
 
 @router.put("/tone-guidance")
@@ -30,5 +35,9 @@ def update_tone_guidance(
 ):
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     tenant.tone_guidance = data.tone_guidance.strip() or None
+    tenant.sample_replies = data.sample_replies.strip() or None
     db.commit()
-    return {"tone_guidance": tenant.tone_guidance or ""}
+    return {
+        "tone_guidance": tenant.tone_guidance or "",
+        "sample_replies": tenant.sample_replies or "",
+    }

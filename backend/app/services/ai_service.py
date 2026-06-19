@@ -39,7 +39,7 @@ Risk level rules:
     return json.loads(result)
 
 
-def generate_reply(review_text: str, rating: int, business_name: str, risk_level: str = "low", tone_guidance: str = "") -> str:
+def generate_reply(review_text: str, rating: int, business_name: str, risk_level: str = "low", tone_guidance: str = "", sample_replies: str = "") -> str:
     if risk_level == "high":
         tone_instruction = """
 This review contains serious concerns — it may include legal threats, safety allegations, severe complaints,
@@ -101,6 +101,8 @@ Keep it to 5-6 sentences. Write like a real business owner who cares, not a cust
 
     business_voice = f"\nThis business describes its own voice/style as: \"{tone_guidance.strip()}\". Write the reply consistent with that voice, without contradicting the rules below.\n" if tone_guidance.strip() else ""
 
+    sample_voice = f"\nHere are real past replies from this business — match their voice, vocabulary, and phrasing patterns (but do not copy them, this review is different):\n\"\"\"\n{sample_replies.strip()}\n\"\"\"\n" if sample_replies.strip() else ""
+
     prompt = f"""
 You are the owner or manager of {business_name} personally responding to a Google review.
 
@@ -109,7 +111,7 @@ Review: "{review_text}"
 
 Tone and structure guidance:
 {tone_instruction}
-{business_voice}
+{business_voice}{sample_voice}
 Additional rules:
 - Always use "we" and "our" — never "I" or "my" — this is a business replying, not an individual
 - Reference the SPECIFIC details they mentioned — never write a reply that could apply to any review

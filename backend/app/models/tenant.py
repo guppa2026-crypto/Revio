@@ -23,6 +23,7 @@ class Tenant(Base):
     google_account_id = Column(String, nullable=True)
     google_location_id = Column(String, nullable=True)
     tone_guidance = Column(String, nullable=True)
+    sample_replies = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
