@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Star, Clock, CheckCheck, CreditCard, Settings, LogOut, Plus, AlertTriangle, LayoutDashboard, RefreshCw, X } from 'lucide-react'
+import { Star, Clock, CheckCheck, CreditCard, Settings, LogOut, Plus, AlertTriangle, LayoutDashboard, RefreshCw, X, Menu } from 'lucide-react'
 import api from '@/lib/api'
 import RatingGoal from '@/components/RatingGoal'
 
@@ -77,6 +77,7 @@ export default function DashboardPage() {
   const [approving, setApproving] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   // Location picker
   const [showLocationPicker, setShowLocationPicker] = useState(false)
@@ -211,7 +212,9 @@ export default function DashboardPage() {
     .layout { display: flex; min-height: 100vh; background: #F5F4F1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
     /* SIDEBAR */
-    .sidebar { width: 228px; background: #0F0F0E; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 20; border-right: 1px solid rgba(255,255,255,0.06); }
+    .sidebar { width: 228px; background: #0F0F0E; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 30; border-right: 1px solid rgba(255,255,255,0.06); transition: transform 0.2s ease; }
+    .sidebar-backdrop { display: none; }
+    .nav-toggle { display: none; }
     .sidebar-logo { padding: 22px 20px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 8px; }
     .logo-mark { width: 28px; height: 28px; background: linear-gradient(135deg, #7F77DD, #5B52CC); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .logo-mark svg { color: #fff; }
@@ -348,8 +351,12 @@ export default function DashboardPage() {
 
     @media (max-width: 768px) {
       .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop.open { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 25; }
       .main { margin-left: 0; }
       .topbar, .content { padding-left: 16px; padding-right: 16px; }
+      .nav-toggle { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid #E0DED7; background: #fff; cursor: pointer; color: #1A1916; margin-right: 10px; flex-shrink: 0; }
+      .topbar-left { display: flex; align-items: center; }
       .stats-strip { flex-direction: column; }
       .metric + .metric::before { display: none; }
     }
@@ -364,7 +371,8 @@ export default function DashboardPage() {
       <div className="layout">
 
         {/* SIDEBAR */}
-        <aside className="sidebar">
+        <div className={'sidebar-backdrop' + (mobileNavOpen ? ' open' : '')} onClick={() => setMobileNavOpen(false)} />
+        <aside className={'sidebar' + (mobileNavOpen ? ' open' : '')}>
           <div className="sidebar-logo">
             <div className="logo-mark">
               <Star size={14} fill="white" />
@@ -377,16 +385,16 @@ export default function DashboardPage() {
               <LayoutDashboard size={15} />
               Dashboard
             </button>
-            <button className="nav-item" onClick={() => router.push('/billing')}>
+            <button className="nav-item" onClick={() => { setMobileNavOpen(false); router.push('/billing') }}>
               <CreditCard size={15} />
               Billing
             </button>
-            <button className="nav-item" onClick={() => router.push('/settings')}>
+            <button className="nav-item" onClick={() => { setMobileNavOpen(false); router.push('/settings') }}>
               <Settings size={15} />
               Settings
             </button>
             <span className="nav-section">Google</span>
-            <button className="nav-item" onClick={handleGoogleConnect}>
+            <button className="nav-item" onClick={() => { setMobileNavOpen(false); handleGoogleConnect() }}>
               <RefreshCw size={15} />
               Connect Google
             </button>
@@ -402,7 +410,12 @@ export default function DashboardPage() {
         {/* MAIN */}
         <div className="main">
           <div className="topbar">
-            <span className="topbar-title">Reviews</span>
+            <div className="topbar-left">
+              <button className="nav-toggle" onClick={() => setMobileNavOpen(true)} aria-label="Open menu">
+                <Menu size={18} />
+              </button>
+              <span className="topbar-title">Reviews</span>
+            </div>
             <div className="topbar-actions">
               <button className="btn-ghost" onClick={() => fetchReviews(true)}>
                 <RefreshCw size={13} className={refreshing ? 'spinning' : ''} />
