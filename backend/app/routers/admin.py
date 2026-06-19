@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from pydantic import BaseModel
 from datetime import datetime, timedelta
 from app.database import get_db
 from app.models.tenant import Tenant
@@ -57,3 +58,20 @@ def get_customers(
             "created_at": t.created_at.isoformat() if t.created_at else None,
         })
     return result
+
+class GrantFreeRequest(BaseModel):
+    email: str
+
+@router.post("/customers/grant-free")
+def grant_free_access(
+    body: GrantFreeRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    tenant = db.query(Tenant).filter(Tenant.email == body.email).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="No tenant found with that email")
+    tenant.is_subscribed = True
+    tenant.subscription_status = "comp"
+    db.commit()
+    return {"id": str(tenant.id), "email": tenant.email, "is_subscribed": tenant.is_subscribed, "subscription_status": tenant.subscription_status}
