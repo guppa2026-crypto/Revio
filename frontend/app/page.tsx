@@ -97,6 +97,14 @@ export default function HomePage() {
     .divider { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem; }
     .divider-line { border: none; border-top: 1px solid #ECEAE4; }
 
+    /* DEMO */
+    .demo-wrap { max-width: 1100px; margin: 0 auto; padding: 5rem 2.5rem 1rem; text-align: center; }
+    .demo-wrap .section-h2 { margin: 0 auto 3rem; }
+    .demo-card { background: #fff; border: 1px solid #E5E3DC; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.04), 0 20px 60px rgba(0,0,0,0.1); text-align: left; }
+    .demo-topbar { background: #F5F4F1; border-bottom: 1px solid #ECEAE4; padding: 10px 16px; display: flex; align-items: center; gap: 6px; }
+    .demo-img { display: block; width: 100%; height: auto; }
+    .demo-caption { font-size: 13px; color: #A8A49C; margin-top: 1.25rem; }
+
     /* HOW IT WORKS */
     .how-wrap { max-width: 1100px; margin: 0 auto; padding: 5rem 2.5rem; }
     .section-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #A8A49C; margin-bottom: 1rem; }
@@ -262,6 +270,22 @@ export default function HomePage() {
         </div>
 
         <div className="divider"><hr className="divider-line" /></div>
+
+        {/* DEMO */}
+        <div className="demo-wrap">
+          <div className="section-eyebrow">See it in action</div>
+          <h2 className="section-h2">The actual dashboard — review list, risk flags, the reply editor, and your rating tracker</h2>
+          <div className="demo-card">
+            <div className="demo-topbar">
+              <div className="dot dot-red" />
+              <div className="dot dot-yellow" />
+              <div className="dot dot-green" />
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="demo-img" src="/screenshots/demo.gif" alt="Revio dashboard walkthrough: review list, a flagged high-risk review, the reply editor, and the rating goal tracker" />
+          </div>
+          <div className="demo-caption">Real screenshots from a live Revio dashboard — cycling through the review list, an auto-scheduled reply, a flagged review, and the editor.</div>
+        </div>
 
         {/* HOW IT WORKS */}
         <div className="how-wrap" id="how">
