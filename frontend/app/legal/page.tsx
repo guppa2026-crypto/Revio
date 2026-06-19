@@ -1,8 +1,19 @@
 'use client'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 export default function LegalPage() {
-  const [tab, setTab] = useState<'terms' | 'privacy'>('terms')
+  return (
+    <Suspense fallback={null}>
+      <LegalContent />
+    </Suspense>
+  )
+}
+
+function LegalContent() {
+  const searchParams = useSearchParams()
+  const initialTab = searchParams.get('tab') === 'privacy' ? 'privacy' : 'terms'
+  const [tab, setTab] = useState<'terms' | 'privacy'>(initialTab)
 
   const css = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,7 +56,8 @@ export default function LegalPage() {
               <p>Revio is a trading name of Guppa, a sole trader registered in England. When we say "we", "us", or "Revio" in these terms, we mean Guppa trading as Revio. You can contact us at <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a>.</p>
 
               <h2>2. What Revio does</h2>
-              <p>Revio is an AI-powered review management service. It connects to your Google Business Profile, reads your customer reviews, generates draft replies using AI, and (with your approval) posts those replies back to Google on your behalf.</p>
+              <p>Revio is an AI-powered review management service. It connects to your Google Business Profile, reads your customer reviews, and generates draft replies using AI.</p>
+              <p>For reviews we flag as needing your input (negative, mixed, or higher-risk reviews), we wait for you to approve, edit, or reject the draft before anything is posted. For straightforward positive reviews, we schedule the draft to post automatically after a 24-hour window, which you can review, edit, or cancel from your dashboard at any time before it goes live.</p>
 
               <h2>3. Subscription and payment</h2>
               <p>Access to Revio requires a paid subscription of £18 per month (inclusive of VAT). Payment is processed securely by Stripe. Your subscription renews automatically each month until cancelled.</p>
@@ -55,13 +67,13 @@ export default function LegalPage() {
               <h2>4. Your responsibilities</h2>
               <ul>
                 <li>You must have the right to connect the Google Business Profile you link to Revio.</li>
-                <li>You are responsible for reviewing and approving any AI-generated replies before they are posted.</li>
+                <li>You are responsible for reviewing AI-generated replies. Replies to flagged or lower-rated reviews wait for your explicit approval; replies to straightforward positive reviews post automatically after a 24-hour window unless you review, edit, or cancel them first.</li>
                 <li>You must not use Revio to post false, misleading, or defamatory content.</li>
                 <li>You are responsible for keeping your login credentials secure.</li>
               </ul>
 
               <h2>5. AI-generated content</h2>
-              <p>Revio uses AI to draft review replies. These drafts are suggestions only — you approve them before anything is posted. We do not guarantee the accuracy, tone, or suitability of any AI-generated content. Always review drafts before approving.</p>
+              <p>Revio uses AI to draft review replies. For flagged or lower-rated reviews, these drafts are suggestions only and require your explicit approval before posting. For straightforward positive reviews, drafts are scheduled to post automatically after a 24-hour window unless you edit or cancel them first — your dashboard always shows what is scheduled and lets you intervene before it goes live. We do not guarantee the accuracy, tone, or suitability of any AI-generated content. We recommend reviewing scheduled drafts during the 24-hour window.</p>
 
               <h2>6. Availability</h2>
               <p>We aim to keep Revio available at all times but cannot guarantee uninterrupted service. We may carry out maintenance or updates that temporarily affect availability. We are not liable for any losses caused by downtime.</p>
