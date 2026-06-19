@@ -297,8 +297,8 @@ export default function HomePage() {
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon feature-icon-purple"><Zap size={20} /></div>
-              <h3>Learns your tone</h3>
-              <p>Describe your style or paste a few of your own past replies — Revio picks up your vocabulary and writes in your voice, not a generic template.</p>
+              <h3>Genuinely human replies</h3>
+              <p>Every reply references the specific details of that review — what the customer praised or complained about — and reads like it came from a person, not a template.</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon feature-icon-green"><Shield size={20} /></div>

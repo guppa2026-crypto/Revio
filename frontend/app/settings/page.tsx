@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 
@@ -12,31 +12,6 @@ export default function SettingsPage() {
   const [pwLoading, setPwLoading] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [disconnected, setDisconnected] = useState(false)
-  const [toneGuidance, setToneGuidance] = useState('')
-  const [sampleReplies, setSampleReplies] = useState('')
-  const [toneSaving, setToneSaving] = useState(false)
-  const [toneSuccess, setToneSuccess] = useState('')
-
-  useEffect(() => {
-    api.get('/tenant/profile').then(res => {
-      setToneGuidance(res.data.tone_guidance || '')
-      setSampleReplies(res.data.sample_replies || '')
-    }).catch(() => {})
-  }, [])
-
-  const handleSaveTone = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setToneSaving(true)
-    setToneSuccess('')
-    try {
-      await api.put('/tenant/tone-guidance', { tone_guidance: toneGuidance, sample_replies: sampleReplies })
-      setToneSuccess('Saved — new replies will use this.')
-    } catch {
-      alert('Failed to save. Please try again.')
-    } finally {
-      setToneSaving(false)
-    }
-  }
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,37 +91,6 @@ export default function SettingsPage() {
 
         <div className="page">
           <div className="page-title">Settings</div>
-
-          <div className="card">
-            <div className="card-title">Tone learning</div>
-            <div className="card-sub">Describe your voice, paste real past replies, or both — Revio uses whatever you give it.</div>
-            <form onSubmit={handleSaveTone}>
-              <div className="field">
-                <label>Describe your style</label>
-                <textarea
-                  value={toneGuidance}
-                  onChange={e => setToneGuidance(e.target.value)}
-                  maxLength={1000}
-                  placeholder="e.g. Friendly and a bit informal, we're a small family-run café and like to mention staff by name when we can."
-                />
-              </div>
-              <div className="field">
-                <label>Paste a few of your past replies</label>
-                <textarea
-                  value={sampleReplies}
-                  onChange={e => setSampleReplies(e.target.value)}
-                  maxLength={4000}
-                  placeholder={'Thanks so much for stopping by, Jen! We\'re thrilled you loved the brunch...\n\nHi Tom, sorry the table wasn\'t ready when you arrived...'}
-                  style={{minHeight: '120px'}}
-                />
-                <div className="field-hint">Optional. Paste 2-3 of your own replies (one per line or paragraph) and Revio will match your real vocabulary and phrasing. Leave both fields blank and Revio will just write naturally based on each review.</div>
-              </div>
-              <button className="btn btn-primary" type="submit" disabled={toneSaving}>
-                {toneSaving ? 'Saving…' : 'Save'}
-              </button>
-              {toneSuccess && <div className="success">{toneSuccess}</div>}
-            </form>
-          </div>
 
           <div className="card">
             <div className="card-title">Change password</div>

@@ -31,33 +31,15 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [connecting, setConnecting] = useState(false)
   const [activeExample, setActiveExample] = useState(0)
-  const [toneGuidance, setToneGuidance] = useState('')
-  const [toneSaved, setToneSaved] = useState(false)
-  const [toneSaving, setToneSaving] = useState(false)
 
   const handleConnectGoogle = async () => {
     setConnecting(true)
     try {
-      if (toneGuidance.trim()) {
-        await api.put('/tenant/tone-guidance', { tone_guidance: toneGuidance }).catch(() => {})
-      }
       const res = await api.get('/google/connect')
       window.location.href = res.data.auth_url
     } catch {
       setConnecting(false)
       alert('Failed to start Google connection.')
-    }
-  }
-
-  const handleSaveTone = async () => {
-    setToneSaving(true)
-    try {
-      await api.put('/tenant/tone-guidance', { tone_guidance: toneGuidance })
-      setToneSaved(true)
-    } catch {
-      alert('Failed to save. You can always add this later in Settings.')
-    } finally {
-      setToneSaving(false)
     }
   }
 
@@ -95,13 +77,6 @@ export default function OnboardingPage() {
     .preview-reply { background: #fff; border-left: 3px solid #7F77DD; border-radius: 0 8px 8px 0; padding: 10px 12px; }
     .preview-reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6A61C9; margin-bottom: 5px; }
     .preview-reply-text { font-size: 12px; color: #3A3834; line-height: 1.55; }
-    .tone-field { margin-bottom: 2rem; }
-    .tone-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-    .tone-field-sub { font-size: 12px; color: #9E9B93; margin-bottom: 8px; line-height: 1.5; }
-    .tone-field textarea { width: 100%; font-size: 13px; color: #1A1916; background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 8px; padding: 10px 12px; font-family: inherit; outline: none; resize: vertical; min-height: 64px; }
-    .tone-field textarea:focus { border-color: #7F77DD; background: #fff; }
-    .tone-save { font-size: 12px; font-weight: 600; color: #6A61C9; background: none; border: none; cursor: pointer; padding: 8px 0 0; font-family: inherit; }
-    .tone-saved { font-size: 12px; color: #3B6D11; padding-top: 8px; }
     .connect-hint { font-size: 12px; color: #9E9B93; text-align: center; margin-top: 4px; margin-bottom: 14px; }
   `
 
@@ -141,23 +116,6 @@ export default function OnboardingPage() {
               <div className="preview-reply-tag">Drafted by Revio</div>
               <div className="preview-reply-text">{EXAMPLES[activeExample].reply}</div>
             </div>
-          </div>
-
-          <div className="tone-field">
-            <label>Want replies to sound more like you? (optional)</label>
-            <div className="tone-field-sub">Describe your tone in a sentence — you can always add or change this later in Settings.</div>
-            <textarea
-              value={toneGuidance}
-              onChange={e => { setToneGuidance(e.target.value); setToneSaved(false) }}
-              maxLength={1000}
-              placeholder="e.g. Friendly and a bit informal, we're a small family-run café and like to mention staff by name."
-            />
-            {toneGuidance.trim() && !toneSaved && (
-              <button type="button" className="tone-save" onClick={handleSaveTone} disabled={toneSaving}>
-                {toneSaving ? 'Saving…' : 'Save tone'}
-              </button>
-            )}
-            {toneSaved && <div className="tone-saved">Saved — Revio will use this for your replies.</div>}
           </div>
 
           <div className="steps">
