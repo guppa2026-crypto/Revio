@@ -36,7 +36,7 @@ export default function RatingGoal({ rating, count }: { rating: number; count: n
   }
 
   const css = `
-    .rg-card { background: #fff; border: 1px solid #E0DCFA; border-left: 3px solid #7F77DD; border-radius: 14px; padding: 16px 20px; margin-bottom: 2rem; display: flex; align-items: center; gap: 14px; }
+    .rg-card { background: #fff; border: 1px solid #351cd3; border-left: 3px solid #7F77DD; border-radius: 14px; padding: 16px 20px; margin-bottom: 2rem; display: flex; align-items: center; gap: 14px; }
     .rg-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #EFEDFB, #E3DEFA); color: #6A61C9; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .rg-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9E9B93; margin-bottom: 3px; }
     .rg-headline { font-size: 15px; color: #1A1916; font-weight: 500; margin-bottom: 10px; }

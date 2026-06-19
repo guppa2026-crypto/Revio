@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
-from app.routers import auth, reviews, billing, admin, google
+from app.routers import auth, reviews, billing, admin, google, tenant
 from app.utils.dependencies import get_current_user
 from app.utils.limiter import limiter
 from app.database import engine
@@ -16,6 +16,9 @@ def _migrate_db():
     with engine.connect() as conn:
         conn.execute(text(
             "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reply_at TIMESTAMP;"
+        ))
+        conn.execute(text(
+            "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tone_guidance VARCHAR;"
         ))
         conn.commit()
 
@@ -56,6 +59,7 @@ app.include_router(reviews.router)
 app.include_router(billing.router)
 app.include_router(admin.router)
 app.include_router(google.router)
+app.include_router(tenant.router)
 
 @app.get("/")
 def root():

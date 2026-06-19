@@ -119,7 +119,7 @@ def regenerate_reply(
         raise HTTPException(status_code=404, detail="Review not found")
     from app.services.ai_service import generate_reply
     risk_level = review.risk_level or "low"
-    new_reply = generate_reply(review.review_text or "", review.rating, tenant.name, risk_level=risk_level)
+    new_reply = generate_reply(review.review_text or "", review.rating, tenant.name, risk_level=risk_level, tone_guidance=tenant.tone_guidance or "")
     review.generated_reply = new_reply
     db.commit()
     db.refresh(review)
@@ -172,7 +172,7 @@ def import_review(
     )
     db.add(review)
     db.flush()
-    processed = process_review(review, db, tenant.name)
+    processed = process_review(review, db, tenant.name, tone_guidance=tenant.tone_guidance or "")
     return processed
 
 @router.post("/test-process")
@@ -191,7 +191,7 @@ def test_process_review(
     )
     db.add(fake_review)
     db.flush()
-    processed = process_review(fake_review, db, tenant.name)
+    processed = process_review(fake_review, db, tenant.name, tone_guidance=tenant.tone_guidance or "")
     return {
         "review_id": str(processed.id),
         "sentiment": processed.sentiment,

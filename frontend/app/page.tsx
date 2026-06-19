@@ -1,9 +1,33 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Star, Shield, Zap, CheckCircle, ArrowRight } from 'lucide-react'
+import { Star, Shield, Zap, CheckCircle, ArrowRight, Mail, Lock, MessageSquare, ChevronDown } from 'lucide-react'
+
+const FAQS = [
+  {
+    q: 'Is auto-posting reviews safe?',
+    a: 'Every review is scored for risk before anything happens. Negative, mixed, or sensitive reviews are always held for your approval — Revio never auto-posts those. Only straightforward 4-5 star reviews are scheduled to post automatically, and even then you get a 24-hour window to review, edit, or cancel the reply from your dashboard before it goes live.',
+  },
+  {
+    q: 'How does Revio decide what to say?',
+    a: "Each reply is generated for that specific review — referencing what the customer actually praised or complained about — rather than picking from a generic template. You can edit any drafted reply, or regenerate it, before it's posted.",
+  },
+  {
+    q: 'What happens with negative reviews?',
+    a: 'Revio drafts a thoughtful, specific reply — acknowledging what went wrong and what you\'re doing about it — but it always waits in your dashboard for your approval. We never post on your behalf for a negative or high-risk review without you reviewing it first.',
+  },
+  {
+    q: 'Is this compliant with Google\'s review policies?',
+    a: 'Yes. Google explicitly allows AI-assisted and automated review replies, provided the account owner has given clear consent and retains the ability to review and edit. That\'s exactly how Revio works — you opt in when you connect your account, and every scheduled reply can be edited or cancelled before it posts.',
+  },
+  {
+    q: 'What data does Revio access, and how secure is it?',
+    a: "Connecting your Google Business Profile uses Google's standard OAuth login. Google only offers one permission scope for managing review replies via its API, and that's what we request — we don't use it to touch your business hours, listing photos, or anything else. Your access tokens are encrypted at rest in our database. You can revoke access at any time from your Google Account or by disconnecting in your Revio dashboard. We don't sell your data or use it for advertising. See the full Privacy Policy for details.",
+  },
+]
 
 export default function HomePage() {
   const [loggedIn, setLoggedIn] = useState(false)
+  const [openFaq, setOpenFaq] = useState<number | null>(0)
 
   useEffect(() => {
     setLoggedIn(!!localStorage.getItem('token'))
@@ -86,6 +110,7 @@ export default function HomePage() {
 
     /* FEATURES */
     .features-wrap { max-width: 1100px; margin: 0 auto; padding: 1rem 2.5rem 5rem; }
+    .features-intro { font-size: 16px; color: #6B6963; line-height: 1.6; max-width: 560px; margin-top: -2.5rem; margin-bottom: 0; }
     .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 3rem; }
     .feature-card { background: #fff; border: 1px solid #E8E6E0; border-radius: 16px; padding: 28px; }
     .feature-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
@@ -94,6 +119,23 @@ export default function HomePage() {
     .feature-icon-amber { background: #FEF3C7; color: #D97706; }
     .feature-card h3 { font-size: 16px; font-weight: 700; color: #111110; margin-bottom: 8px; letter-spacing: -0.01em; }
     .feature-card p { font-size: 14px; color: #6B6963; line-height: 1.65; }
+
+    /* TRUST */
+    .trust-wrap { max-width: 1100px; margin: 0 auto; padding: 1rem 2.5rem 5rem; }
+    .trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 3rem; }
+    .trust-card { background: #fff; border: 1px solid #E8E6E0; border-radius: 16px; padding: 28px; }
+    .trust-icon { width: 42px; height: 42px; border-radius: 12px; background: #F5F4F1; color: #5B52CC; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+    .trust-card h3 { font-size: 16px; font-weight: 700; color: #111110; margin-bottom: 8px; letter-spacing: -0.01em; }
+    .trust-card p { font-size: 14px; color: #6B6963; line-height: 1.65; }
+    .trust-card a { color: #5B52CC; font-weight: 600; }
+
+    /* FAQ */
+    .faq-wrap { max-width: 760px; margin: 0 auto; padding: 1rem 2.5rem 5rem; }
+    .faq-item { border-bottom: 1px solid #E8E6E0; }
+    .faq-q { width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 22px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-family: inherit; font-size: 16px; font-weight: 600; color: #111110; letter-spacing: -0.01em; }
+    .faq-q svg { flex-shrink: 0; color: #A8A49C; transition: transform 0.2s; }
+    .faq-q[aria-expanded="true"] svg { transform: rotate(180deg); }
+    .faq-a { font-size: 14px; color: #6B6963; line-height: 1.7; padding: 0 0 22px; max-width: 640px; }
 
     /* PRICING */
     .pricing-wrap { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem 5rem; }
@@ -134,8 +176,9 @@ export default function HomePage() {
       .preview-badge { display: none; }
       .steps-grid { grid-template-columns: 1fr; }
       .features-grid { grid-template-columns: 1fr; }
+      .trust-grid { grid-template-columns: 1fr; }
       .pricing-inner { grid-template-columns: 1fr; gap: 2rem; }
-      .how-wrap, .features-wrap, .pricing-wrap, .cta-wrap, .footer-wrap, .divider { padding-left: 1.5rem; padding-right: 1.5rem; }
+      .how-wrap, .features-wrap, .trust-wrap, .faq-wrap, .pricing-wrap, .cta-wrap, .footer-wrap, .divider { padding-left: 1.5rem; padding-right: 1.5rem; }
       .nav { padding: 0 1.5rem; }
     }
   `
@@ -250,11 +293,12 @@ export default function HomePage() {
         <div className="features-wrap">
           <div className="section-eyebrow">Why Revio</div>
           <h2 className="section-h2">Built to handle the edge cases</h2>
+          <p className="features-intro">Built for UK small businesses — natural, human tone, safe-by-default, and simple enough for non-technical owners to trust.</p>
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon feature-icon-purple"><Zap size={20} /></div>
               <h3>Replies in your voice</h3>
-              <p>Revio learns the tone of your business and writes replies that sound like you — not a corporate template.</p>
+              <p>Every reply references the specific details of that review — what the customer praised or complained about — instead of a generic template.</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon feature-icon-green"><Shield size={20} /></div>
@@ -267,6 +311,50 @@ export default function HomePage() {
               <p>See exactly how many 5-star reviews you need to reach your next milestone — updated live from your real data.</p>
             </div>
           </div>
+        </div>
+
+        {/* TRUST */}
+        <div className="trust-wrap">
+          <div className="section-eyebrow">Why trust Revio</div>
+          <h2 className="section-h2">New product, no shortcuts</h2>
+          <div className="trust-grid">
+            <div className="trust-card">
+              <div className="trust-icon"><Mail size={20} /></div>
+              <h3>You'll talk to the person who built it</h3>
+              <p>No support ticket queue. Every message goes straight to the founder, and we usually reply within one business day. <a href="/contact">Get in touch</a>.</p>
+            </div>
+            <div className="trust-card">
+              <div className="trust-icon"><Lock size={20} /></div>
+              <h3>Your data isn't the product</h3>
+              <p>We don't sell your data or use it for advertising, and we only use essential cookies. Payments are handled entirely by Stripe — we never see your card details. <a href="/legal">Read the policy</a>.</p>
+            </div>
+            <div className="trust-card">
+              <div className="trust-icon"><MessageSquare size={20} /></div>
+              <h3>See it before you commit</h3>
+              <p>Want a walkthrough with your own reviews before connecting your Google account? <a href="/contact">Ask for a live demo</a> — no obligation, no card required.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="divider"><hr className="divider-line" /></div>
+
+        {/* FAQ */}
+        <div className="faq-wrap">
+          <div className="section-eyebrow">FAQ</div>
+          <h2 className="section-h2">Questions you'd ask before connecting your account</h2>
+          {FAQS.map((item, i) => (
+            <div className="faq-item" key={item.q}>
+              <button
+                className="faq-q"
+                aria-expanded={openFaq === i}
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+              >
+                {item.q}
+                <ChevronDown size={18} />
+              </button>
+              {openFaq === i && <div className="faq-a">{item.a}</div>}
+            </div>
+          ))}
         </div>
 
         <div className="divider"><hr className="divider-line" /></div>

@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import uuid
 from app.database import Base
+from app.utils.crypto import EncryptedString
 from sqlalchemy.orm import relationship
 
 class Tenant(Base):
@@ -16,11 +17,12 @@ class Tenant(Base):
     subscription_status = Column(String, nullable=True)  # active | past_due | canceled | trialing
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
-    google_access_token = Column(String, nullable=True)
-    google_refresh_token = Column(String, nullable=True)
+    google_access_token = Column(EncryptedString, nullable=True)
+    google_refresh_token = Column(EncryptedString, nullable=True)
     google_token_expiry = Column(DateTime, nullable=True)
     google_account_id = Column(String, nullable=True)
     google_location_id = Column(String, nullable=True)
+    tone_guidance = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

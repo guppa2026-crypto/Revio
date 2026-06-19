@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 
@@ -12,6 +12,27 @@ export default function SettingsPage() {
   const [pwLoading, setPwLoading] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [disconnected, setDisconnected] = useState(false)
+  const [toneGuidance, setToneGuidance] = useState('')
+  const [toneSaving, setToneSaving] = useState(false)
+  const [toneSuccess, setToneSuccess] = useState('')
+
+  useEffect(() => {
+    api.get('/tenant/profile').then(res => setToneGuidance(res.data.tone_guidance || '')).catch(() => {})
+  }, [])
+
+  const handleSaveTone = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setToneSaving(true)
+    setToneSuccess('')
+    try {
+      await api.put('/tenant/tone-guidance', { tone_guidance: toneGuidance })
+      setToneSuccess('Saved — new replies will use this.')
+    } catch {
+      alert('Failed to save. Please try again.')
+    } finally {
+      setToneSaving(false)
+    }
+  }
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,8 +80,10 @@ export default function SettingsPage() {
     .card-sub { font-size: 13px; color: #9E9B93; margin-bottom: 20px; }
     .field { margin-bottom: 14px; }
     .field label { display: block; font-size: 13px; font-weight: 500; color: #5F5E5A; margin-bottom: 6px; }
-    .field input { width: 100%; font-size: 14px; color: #1A1916; background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 8px; padding: 10px 12px; font-family: inherit; outline: none; transition: border-color 0.15s; }
-    .field input:focus { border-color: #7F77DD; background: #fff; }
+    .field input, .field textarea { width: 100%; font-size: 14px; color: #1A1916; background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 8px; padding: 10px 12px; font-family: inherit; outline: none; transition: border-color 0.15s; resize: vertical; }
+    .field input:focus, .field textarea:focus { border-color: #7F77DD; background: #fff; }
+    .field textarea { min-height: 90px; }
+    .field-hint { font-size: 12px; color: #9E9B93; margin-top: 6px; line-height: 1.5; }
     .btn { font-size: 13px; font-weight: 500; padding: 9px 20px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; font-family: inherit; }
     .btn-primary { background: #1A1916; color: #fff; border-color: #1A1916; }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -89,6 +112,26 @@ export default function SettingsPage() {
 
         <div className="page">
           <div className="page-title">Settings</div>
+
+          <div className="card">
+            <div className="card-title">Tone guidance</div>
+            <div className="card-sub">Describe your business's voice so AI replies sound more like you.</div>
+            <form onSubmit={handleSaveTone}>
+              <div className="field">
+                <textarea
+                  value={toneGuidance}
+                  onChange={e => setToneGuidance(e.target.value)}
+                  maxLength={1000}
+                  placeholder="e.g. Friendly and a bit informal, we're a small family-run café and like to mention staff by name when we can."
+                />
+                <div className="field-hint">Optional. Leave blank and Revio will just write naturally based on each review.</div>
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={toneSaving}>
+                {toneSaving ? 'Saving…' : 'Save'}
+              </button>
+              {toneSuccess && <div className="success">{toneSuccess}</div>}
+            </form>
+          </div>
 
           <div className="card">
             <div className="card-title">Change password</div>

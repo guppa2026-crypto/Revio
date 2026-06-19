@@ -39,6 +39,15 @@ export default function OnboardingPage() {
     .btn-ghost { width: 100%; font-size: 14px; font-weight: 500; color: #888; background: transparent; padding: 10px; border-radius: 10px; border: none; cursor: pointer; font-family: inherit; }
     .btn-ghost:hover { color: #444; }
     .google-icon { margin-right: 8px; }
+    .preview { background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 12px; padding: 16px; margin-bottom: 2rem; }
+    .preview-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9E9B93; margin-bottom: 10px; }
+    .preview-review { display: flex; gap: 10px; margin-bottom: 10px; }
+    .preview-avatar { width: 28px; height: 28px; border-radius: 50%; background: #EEF2FF; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .preview-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .preview-text { font-size: 12px; color: #5A5754; line-height: 1.5; }
+    .preview-reply { background: #fff; border-left: 3px solid #7F77DD; border-radius: 0 8px 8px 0; padding: 10px 12px; }
+    .preview-reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6A61C9; margin-bottom: 5px; }
+    .preview-reply-text { font-size: 12px; color: #3A3834; line-height: 1.55; }
   `
 
   return (
@@ -49,6 +58,21 @@ export default function OnboardingPage() {
           <div className="logo"><span className="nav-dot" />Revio</div>
           <div className="title">Welcome to Revio 👋</div>
           <p className="sub">Two steps to get AI replies on your Google reviews. Revio manages one Google Business Profile location per account.</p>
+
+          <div className="preview">
+            <div className="preview-label">What you'll get</div>
+            <div className="preview-review">
+              <div className="preview-avatar">S</div>
+              <div>
+                <div className="preview-name">Sarah M.</div>
+                <div className="preview-text">Lovely coffee and really friendly staff, though the wait was a bit long at peak time.</div>
+              </div>
+            </div>
+            <div className="preview-reply">
+              <div className="preview-reply-tag">Drafted by Revio</div>
+              <div className="preview-reply-text">Thank you so much, Sarah — we're really glad you enjoyed the coffee and found our team welcoming. We hear you on the wait times and are actively working on improving flow during busy periods. Hope to see you again soon!</div>
+            </div>
+          </div>
 
           <div className="steps">
             <div className="step">
