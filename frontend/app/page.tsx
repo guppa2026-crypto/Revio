@@ -46,8 +46,7 @@ export default function HomePage() {
     /* NAV */
     .nav { background: rgba(250,250,248,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid #ECEAE4; padding: 0 2.5rem; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
     .nav-logo { font-size: 18px; font-weight: 800; color: #111110; letter-spacing: -0.03em; display: flex; align-items: center; gap: 8px; }
-    .logo-mark { width: 26px; height: 26px; background: #111110; border-radius: 7px; display: flex; align-items: center; justify-content: center; }
-    .logo-mark svg { color: #fff; }
+    .nav-logo img { height: 24px; width: auto; display: block; }
     .nav-links { display: flex; align-items: center; gap: 6px; }
     .nav-login { font-size: 14px; font-weight: 500; color: #6B6963; padding: 8px 14px; border-radius: 8px; transition: color 0.15s; }
     .nav-login:hover { color: #111110; }
@@ -57,10 +56,10 @@ export default function HomePage() {
     /* HERO */
     .hero-wrap { max-width: 1100px; margin: 0 auto; padding: 5rem 2.5rem 4rem; display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; }
     .hero-left { }
-    .hero-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5B52CC; background: #EEEDFB; border: 1px solid #D8D4F8; padding: 5px 12px; border-radius: 99px; margin-bottom: 1.75rem; }
-    .hero-tag-dot { width: 6px; height: 6px; border-radius: 50%; background: #5B52CC; }
+    .hero-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #E10E1C; background: #FDECEC; border: 1px solid #F8C9CC; padding: 5px 12px; border-radius: 99px; margin-bottom: 1.75rem; }
+    .hero-tag-dot { width: 6px; height: 6px; border-radius: 50%; background: #E10E1C; }
     .hero-h1 { font-size: clamp(38px, 4.5vw, 58px); font-weight: 800; line-height: 1.05; letter-spacing: -0.035em; color: #111110; margin-bottom: 1.25rem; }
-    .hero-h1 em { font-style: normal; color: #5B52CC; }
+    .hero-h1 em { font-style: normal; color: #E10E1C; }
     .hero-sub { font-size: 17px; color: #6B6963; line-height: 1.65; max-width: 440px; margin-bottom: 2rem; }
     .hero-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 1.25rem; }
     .btn-dark { font-size: 15px; font-weight: 600; color: #fff; background: #111110; padding: 13px 24px; border-radius: 10px; display: flex; align-items: center; gap: 8px; transition: background 0.15s, transform 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.12); }
@@ -84,8 +83,8 @@ export default function HomePage() {
     .preview-name { font-size: 14px; font-weight: 600; color: #111110; margin-bottom: 3px; }
     .preview-stars { display: flex; gap: 1px; margin-bottom: 6px; }
     .preview-text { font-size: 13px; color: #5A5754; line-height: 1.55; }
-    .preview-reply { background: #F5F4F1; border-left: 3px solid #5B52CC; border-radius: 0 10px 10px 0; padding: 13px 15px; margin-top: 14px; }
-    .preview-reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5B52CC; margin-bottom: 7px; }
+    .preview-reply { background: #F5F4F1; border-left: 3px solid #E10E1C; border-radius: 0 10px 10px 0; padding: 13px 15px; margin-top: 14px; }
+    .preview-reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #E10E1C; margin-bottom: 7px; }
     .preview-reply-text { font-size: 13px; color: #3A3834; line-height: 1.6; }
     .preview-actions { display: flex; gap: 8px; margin-top: 14px; }
     .preview-btn-approve { font-size: 13px; font-weight: 600; color: #fff; background: #111110; padding: 8px 16px; border-radius: 8px; }
@@ -112,7 +111,7 @@ export default function HomePage() {
     .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #E8E6E0; border-radius: 16px; overflow: hidden; }
     .step { background: #fff; padding: 32px 28px; }
     .step-number { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #A8A49C; margin-bottom: 24px; }
-    .step-icon { width: 40px; height: 40px; border-radius: 11px; background: #F5F4F1; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: #5B52CC; }
+    .step-icon { width: 40px; height: 40px; border-radius: 11px; background: #F5F4F1; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: #E10E1C; }
     .step h3 { font-size: 17px; font-weight: 700; color: #111110; margin-bottom: 10px; letter-spacing: -0.01em; }
     .step p { font-size: 14px; color: #6B6963; line-height: 1.65; }
 
@@ -122,7 +121,7 @@ export default function HomePage() {
     .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 3rem; }
     .feature-card { background: #fff; border: 1px solid #E8E6E0; border-radius: 16px; padding: 28px; }
     .feature-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
-    .feature-icon-purple { background: #EEEDFB; color: #5B52CC; }
+    .feature-icon-red { background: #FDECEC; color: #E10E1C; }
     .feature-icon-green { background: #DCFCE7; color: #16A34A; }
     .feature-icon-amber { background: #FEF3C7; color: #D97706; }
     .feature-card h3 { font-size: 16px; font-weight: 700; color: #111110; margin-bottom: 8px; letter-spacing: -0.01em; }
@@ -132,10 +131,10 @@ export default function HomePage() {
     .trust-wrap { max-width: 1100px; margin: 0 auto; padding: 1rem 2.5rem 5rem; }
     .trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 3rem; }
     .trust-card { background: #fff; border: 1px solid #E8E6E0; border-radius: 16px; padding: 28px; }
-    .trust-icon { width: 42px; height: 42px; border-radius: 12px; background: #F5F4F1; color: #5B52CC; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+    .trust-icon { width: 42px; height: 42px; border-radius: 12px; background: #F5F4F1; color: #E10E1C; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
     .trust-card h3 { font-size: 16px; font-weight: 700; color: #111110; margin-bottom: 8px; letter-spacing: -0.01em; }
     .trust-card p { font-size: 14px; color: #6B6963; line-height: 1.65; }
-    .trust-card a { color: #5B52CC; font-weight: 600; }
+    .trust-card a { color: #E10E1C; font-weight: 600; }
 
     /* FAQ */
     .faq-wrap { max-width: 760px; margin: 0 auto; padding: 1rem 2.5rem 5rem; }
@@ -165,7 +164,8 @@ export default function HomePage() {
     /* CTA BAND */
     .cta-wrap { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem 5rem; }
     .cta-band { background: #111110; border-radius: 20px; padding: 4.5rem 3rem; text-align: center; position: relative; overflow: hidden; }
-    .cta-band::before { content: ''; position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 500px; height: 400px; background: radial-gradient(ellipse at center, rgba(91,82,204,0.35), transparent 65%); pointer-events: none; }
+    .cta-band::before { content: ''; position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 500px; height: 400px; background: radial-gradient(ellipse at center, rgba(225,14,28,0.32), transparent 65%); pointer-events: none; }
+    .cta-band::after { content: ''; position: absolute; bottom: -120px; right: -60px; width: 360px; height: 320px; background: radial-gradient(ellipse at center, rgba(253,192,17,0.18), transparent 70%); pointer-events: none; }
     .cta-band h2 { font-size: clamp(26px, 3.5vw, 42px); font-weight: 800; color: #fff; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 14px; position: relative; }
     .cta-band p { font-size: 16px; color: rgba(255,255,255,0.5); margin-bottom: 2rem; position: relative; }
     .cta-band a { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #111110; background: #fff; padding: 14px 28px; border-radius: 11px; position: relative; transition: opacity 0.15s; }
@@ -175,6 +175,7 @@ export default function HomePage() {
     .footer-wrap { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem; }
     .footer { border-top: 1px solid #E8E6E0; padding: 2.25rem 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
     .footer-logo { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; color: #111110; display: flex; align-items: center; gap: 8px; }
+    .footer-logo img { height: 18px; width: auto; display: block; }
     .footer-links { display: flex; align-items: center; gap: 20px; }
     .footer-link { font-size: 13px; color: #A8A49C; transition: color 0.15s; }
     .footer-link:hover { color: #6B6963; }
@@ -199,7 +200,8 @@ export default function HomePage() {
         {/* NAV */}
         <nav className="nav">
           <div className="nav-logo">
-            <div className="logo-mark"><Star size={13} fill="white" /></div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/revio-icon.png" alt="" />
             Revio
           </div>
           <div className="nav-links">
@@ -320,7 +322,7 @@ export default function HomePage() {
           <p className="features-intro">Built for UK small businesses — natural, human tone, safe-by-default, and simple enough for non-technical owners to trust.</p>
           <div className="features-grid">
             <div className="feature-card">
-              <div className="feature-icon feature-icon-purple"><Zap size={20} /></div>
+              <div className="feature-icon feature-icon-red"><Zap size={20} /></div>
               <h3>Genuinely human replies</h3>
               <p>Every reply references the specific details of that review — what the customer praised or complained about — and reads like it came from a person, not a template.</p>
             </div>
@@ -428,7 +430,8 @@ export default function HomePage() {
         <div className="footer-wrap">
           <div className="footer">
             <div className="footer-logo">
-              <div className="logo-mark"><Star size={11} fill="white" /></div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/revio-icon.png" alt="" />
               Revio
             </div>
             <div className="footer-links">
