@@ -77,7 +77,7 @@ export default function BillingPage() {
     .shell { min-height: 100vh; background: #F7F6F3; font-family: system-ui, sans-serif; }
     .nav { background: #fff; border-bottom: 1px solid #ECEAE4; padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
     .nav-logo { font-size: 17px; font-weight: 600; color: #1A1916; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: #7F77DD; }
+    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: #E10E1C; }
     .nav-signout { font-size: 13px; color: #888; border: none; background: none; cursor: pointer; padding: 6px 10px; border-radius: 6px; }
     .page { max-width: 560px; margin: 0 auto; padding: 3rem 1.5rem; }
     .page-title { font-size: 22px; font-weight: 600; color: #1A1916; margin-bottom: 2rem; }
@@ -106,7 +106,7 @@ export default function BillingPage() {
     .message { font-size: 13px; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; background: #EAF3DE; color: #3B6D11; border: 1px solid #C0DD97; }
     .message-neutral { background: #F1EFE8; color: #5F5E5A; border-color: #E0DDD5; }
     .loading { text-align: center; padding: 4rem; color: #B0ADA5; font-size: 14px; }
-    .back-link { font-size: 13px; color: #7F77DD; cursor: pointer; margin-bottom: 1.5rem; display: inline-block; }
+    .back-link { font-size: 13px; color: #E10E1C; cursor: pointer; margin-bottom: 1.5rem; display: inline-block; }
     .back-link:hover { text-decoration: underline; }
     .divider { height: 1px; background: #ECEAE4; margin: 16px 0; }
   `

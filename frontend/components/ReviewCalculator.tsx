@@ -37,14 +37,14 @@ export default function ReviewCalculator() {
     .rc-label { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9E9B93; }
     .rc-title { font-size: clamp(24px, 3vw, 32px); font-weight: 600; letter-spacing: -0.015em; margin-top: 10px; }
     .rc-sub { font-size: 15px; color: #5F5E5A; margin-top: 10px; }
-    .rc-card { background: #fff; border: 1px solid #E0DCFA; border-radius: 18px; padding: 28px; margin-top: 2rem; box-shadow: 0 2px 6px rgba(26,25,22,0.04), 0 20px 50px rgba(127,119,221,0.12); }
+    .rc-card { background: #fff; border: 1px solid #F8C9CC; border-radius: 18px; padding: 28px; margin-top: 2rem; box-shadow: 0 2px 6px rgba(26,25,22,0.04), 0 20px 50px rgba(225,14,28,0.12); }
     .rc-inputs { display: flex; gap: 16px; }
     .rc-field { flex: 1; text-align: left; }
     .rc-field label { display: block; font-size: 13px; font-weight: 500; color: #5F5E5A; margin-bottom: 6px; }
     .rc-field input { width: 100%; font-size: 18px; font-weight: 600; color: #1A1916; background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 10px; padding: 12px 14px; font-family: inherit; outline: none; transition: border-color 0.15s, background 0.15s; }
-    .rc-field input:focus { border-color: #7F77DD; background: #fff; }
+    .rc-field input:focus { border-color: #E10E1C; background: #fff; }
     .rc-result { margin-top: 22px; padding-top: 22px; border-top: 1px solid #ECEAE4; min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .rc-big { font-size: 52px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; background: linear-gradient(120deg, #7F77DD, #B3A0F2); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .rc-big { font-size: 52px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; background: linear-gradient(120deg, #E10E1C, #FDC011); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .rc-cap { font-size: 15px; color: #4A4844; margin-top: 8px; }
     .rc-msg { font-size: 15px; color: #9E9B93; }
     .rc-note { font-size: 12px; color: #B0ADA5; margin-top: 14px; }

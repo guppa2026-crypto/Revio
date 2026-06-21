@@ -20,7 +20,7 @@ function LegalContent() {
     .shell { min-height: 100vh; background: #F7F6F3; font-family: system-ui, -apple-system, sans-serif; color: #1A1916; }
     .nav { background: #fff; border-bottom: 1px solid #ECEAE4; padding: 0 2rem; height: 56px; display: flex; align-items: center; }
     .nav-logo { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; color: #1A1916; }
-    .nav-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, #9A8FF0, #7F77DD); }
+    .nav-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, #F2727B, #E10E1C); }
     .wrap { max-width: 760px; margin: 0 auto; padding: 3rem 1.5rem; }
     .tabs { display: flex; gap: 4px; background: #ECEAE4; border-radius: 10px; padding: 4px; margin-bottom: 2.5rem; width: fit-content; }
     .tab { font-size: 14px; font-weight: 500; padding: 8px 20px; border-radius: 7px; cursor: pointer; border: none; background: transparent; color: #888; }
@@ -31,7 +31,7 @@ function LegalContent() {
     .doc p { font-size: 15px; color: #4A4844; line-height: 1.7; margin-bottom: 10px; }
     .doc ul { font-size: 15px; color: #4A4844; line-height: 1.7; padding-left: 1.5rem; margin-bottom: 10px; }
     .doc ul li { margin-bottom: 4px; }
-    .doc a { color: #6A61C9; text-decoration: underline; }
+    .doc a { color: #E10E1C; text-decoration: underline; }
   `
 
   return (

@@ -48,13 +48,13 @@ export default function OnboardingPage() {
     .shell { min-height: 100vh; background: #F7F6F3; font-family: system-ui, -apple-system, sans-serif; color: #1A1916; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1.5rem; }
     .card { background: #fff; border: 1px solid #ECEAE4; border-radius: 20px; padding: 2.5rem; max-width: 520px; width: 100%; box-shadow: 0 2px 6px rgba(26,25,22,0.04), 0 16px 40px rgba(26,25,22,0.08); }
     .logo { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 600; margin-bottom: 2rem; }
-    .nav-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, #9A8FF0, #7F77DD); }
+    .nav-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, #F2727B, #E10E1C); }
     .title { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
     .sub { font-size: 15px; color: #5F5E5A; margin-bottom: 2rem; line-height: 1.5; }
     .steps { display: flex; flex-direction: column; gap: 0; margin-bottom: 2rem; }
     .step { display: flex; gap: 16px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid #F1EFE8; }
     .step:last-child { border-bottom: none; }
-    .step-num { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #EFEDFB, #E3DEFA); color: #6A61C9; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .step-num { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #FDECEC, #FBD6D8); color: #E10E1C; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
     .step-done { background: #EAF3DE; color: #3B6D11; }
     .step-body h3 { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
     .step-body p { font-size: 13px; color: #9E9B93; line-height: 1.5; }
@@ -74,8 +74,8 @@ export default function OnboardingPage() {
     .preview-avatar { width: 28px; height: 28px; border-radius: 50%; background: #EEF2FF; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
     .preview-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
     .preview-text { font-size: 12px; color: #5A5754; line-height: 1.5; }
-    .preview-reply { background: #fff; border-left: 3px solid #7F77DD; border-radius: 0 8px 8px 0; padding: 10px 12px; }
-    .preview-reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6A61C9; margin-bottom: 5px; }
+    .preview-reply { background: #fff; border-left: 3px solid #E10E1C; border-radius: 0 8px 8px 0; padding: 10px 12px; }
+    .preview-reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #E10E1C; margin-bottom: 5px; }
     .preview-reply-text { font-size: 12px; color: #3A3834; line-height: 1.55; }
     .connect-hint { font-size: 12px; color: #9E9B93; text-align: center; margin-top: 4px; margin-bottom: 14px; }
   `

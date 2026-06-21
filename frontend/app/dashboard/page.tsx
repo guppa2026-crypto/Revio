@@ -216,14 +216,14 @@ export default function DashboardPage() {
     .sidebar-backdrop { display: none; }
     .nav-toggle { display: none; }
     .sidebar-logo { padding: 22px 20px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 8px; }
-    .logo-mark { width: 28px; height: 28px; background: linear-gradient(135deg, #7F77DD, #5B52CC); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .logo-mark svg { color: #fff; }
+    .logo-mark { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-mark img { width: 28px; height: 28px; object-fit: contain; }
     .logo-name { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
     .sidebar-nav { flex: 1; padding: 4px 10px; display: flex; flex-direction: column; gap: 2px; }
     .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.5); cursor: pointer; border: none; background: none; font-family: inherit; text-decoration: none; transition: background 0.15s, color 0.15s; width: 100%; text-align: left; }
     .nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
-    .nav-item.active { background: rgba(127,119,221,0.18); color: #A89CF5; }
-    .nav-item.active svg { color: #A89CF5; }
+    .nav-item.active { background: rgba(225,14,28,0.18); color: #F5A6AC; }
+    .nav-item.active svg { color: #F5A6AC; }
     .nav-item svg { flex-shrink: 0; }
     .nav-section { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.22); padding: 16px 12px 6px; }
     .sidebar-bottom { padding: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
@@ -251,7 +251,7 @@ export default function DashboardPage() {
     .metric + .metric::before { content: ''; position: absolute; left: 0; top: 20%; height: 60%; width: 1px; background: #E5E3DC; }
     .metric-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #A8A49C; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
     .metric-value { font-size: 32px; font-weight: 700; color: #1A1916; letter-spacing: -0.03em; line-height: 1; }
-    .metric-value.purple { color: #6B63D4; }
+    .metric-value.purple { color: #E10E1C; }
     .metric-value.amber { color: #B45309; }
     .metric-sub { font-size: 12px; color: #B8B4AC; margin-top: 6px; }
 
@@ -268,8 +268,8 @@ export default function DashboardPage() {
     .location-bar-sub { font-size: 12px; color: #6B6963; }
     .location-selects { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .loc-select { font-size: 13px; color: #1A1916; background: #fff; border: 1px solid #E0DED7; border-radius: 8px; padding: 7px 10px; font-family: inherit; outline: none; cursor: pointer; }
-    .loc-select:focus { border-color: #7F77DD; }
-    .btn-save-loc { font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 8px; cursor: pointer; border: none; background: #6B63D4; color: #fff; font-family: inherit; white-space: nowrap; }
+    .loc-select:focus { border-color: #E10E1C; }
+    .btn-save-loc { font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 8px; cursor: pointer; border: none; background: #E10E1C; color: #fff; font-family: inherit; white-space: nowrap; }
     .btn-save-loc:disabled { opacity: 0.45; cursor: not-allowed; }
     .loc-saved { font-size: 13px; font-weight: 600; color: #166534; }
 
@@ -297,19 +297,19 @@ export default function DashboardPage() {
     .pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
     .review-text { font-size: 14px; color: #4A4844; line-height: 1.65; margin-bottom: 14px; }
     .reply-section { background: #F9F8F6; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; position: relative; }
-    .reply-section::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #7F77DD; border-radius: 3px 0 0 3px; }
+    .reply-section::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #E10E1C; border-radius: 3px 0 0 3px; }
     .reply-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7F77DD; background: #EFEDFB; padding: 2px 8px; border-radius: 5px; }
+    .reply-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #E10E1C; background: #FDECEC; padding: 2px 8px; border-radius: 5px; }
     .reply-edit-btn { font-size: 12px; color: #8A8780; border: none; background: none; cursor: pointer; font-family: inherit; padding: 0; }
     .reply-edit-btn:hover { color: #1A1916; }
     .reply-regen-btn { font-size: 12px; color: #8A8780; border: none; background: none; cursor: pointer; font-family: inherit; padding: 0; display: flex; align-items: center; gap: 4px; }
-    .reply-regen-btn:hover { color: #7F77DD; }
+    .reply-regen-btn:hover { color: #E10E1C; }
     .reply-regen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .spin { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .reply-text { font-size: 13px; color: #3A3834; line-height: 1.7; }
     .reply-textarea { width: 100%; font-size: 13px; color: #1A1916; line-height: 1.65; background: #fff; border: 1px solid #D0CEC7; border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 80px; font-family: inherit; outline: none; }
-    .reply-textarea:focus { border-color: #7F77DD; }
+    .reply-textarea:focus { border-color: #E10E1C; }
     .flagged-notice { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #B91C1C; font-weight: 500; margin-bottom: 14px; }
     .scheduled-notice { background: #F5F3FF; border: 1px solid #DDD6FE; border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: #5B21B6; font-weight: 500; margin-bottom: 14px; }
     .btn-cancel-schedule { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 6px; cursor: pointer; border: 1px solid #C4B5FD; background: #fff; color: #7C3AED; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
@@ -339,9 +339,9 @@ export default function DashboardPage() {
     .modal-field { margin-bottom: 16px; }
     .modal-field label { display: block; font-size: 13px; font-weight: 600; color: #4A4844; margin-bottom: 6px; }
     .modal-input { width: 100%; font-size: 14px; color: #1A1916; background: #F9F8F6; border: 1px solid #E5E3DC; border-radius: 9px; padding: 10px 13px; font-family: inherit; outline: none; transition: border-color 0.15s; }
-    .modal-input:focus { border-color: #7F77DD; background: #fff; }
+    .modal-input:focus { border-color: #E10E1C; background: #fff; }
     .modal-textarea { width: 100%; font-size: 14px; color: #1A1916; background: #F9F8F6; border: 1px solid #E5E3DC; border-radius: 9px; padding: 10px 13px; font-family: inherit; outline: none; resize: vertical; min-height: 100px; transition: border-color 0.15s; }
-    .modal-textarea:focus { border-color: #7F77DD; background: #fff; }
+    .modal-textarea:focus { border-color: #E10E1C; background: #fff; }
     .star-picker { display: flex; gap: 6px; }
     .star-btn { font-size: 26px; background: none; border: none; cursor: pointer; padding: 0; line-height: 1; color: #E5E3DC; transition: color 0.1s, transform 0.1s; }
     .star-btn.active { color: #F59E0B; }
@@ -375,7 +375,8 @@ export default function DashboardPage() {
         <aside className={'sidebar' + (mobileNavOpen ? ' open' : '')}>
           <div className="sidebar-logo">
             <div className="logo-mark">
-              <Star size={14} fill="white" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/revio-icon.png" alt="" />
             </div>
             <span className="logo-name">Revio</span>
           </div>

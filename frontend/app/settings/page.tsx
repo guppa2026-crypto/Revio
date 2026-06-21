@@ -49,7 +49,7 @@ export default function SettingsPage() {
     .shell { min-height: 100vh; background: #F7F6F3; font-family: system-ui, -apple-system, sans-serif; color: #1A1916; }
     .nav { background: #fff; border-bottom: 1px solid #ECEAE4; padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
     .nav-logo { font-size: 17px; font-weight: 600; color: #1A1916; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: #7F77DD; }
+    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: #E10E1C; }
     .nav-back { font-size: 13px; color: #888; border: none; background: none; cursor: pointer; padding: 6px 10px; border-radius: 6px; }
     .nav-back:hover { background: #F7F6F3; color: #444; }
     .page { max-width: 560px; margin: 0 auto; padding: 2.5rem 1.5rem; }
@@ -60,7 +60,7 @@ export default function SettingsPage() {
     .field { margin-bottom: 14px; }
     .field label { display: block; font-size: 13px; font-weight: 500; color: #5F5E5A; margin-bottom: 6px; }
     .field input, .field textarea { width: 100%; font-size: 14px; color: #1A1916; background: #FAF9F6; border: 1px solid #ECEAE4; border-radius: 8px; padding: 10px 12px; font-family: inherit; outline: none; transition: border-color 0.15s; resize: vertical; }
-    .field input:focus, .field textarea:focus { border-color: #7F77DD; background: #fff; }
+    .field input:focus, .field textarea:focus { border-color: #E10E1C; background: #fff; }
     .field textarea { min-height: 90px; }
     .field-hint { font-size: 12px; color: #9E9B93; margin-top: 6px; line-height: 1.5; }
     .btn { font-size: 13px; font-weight: 500; padding: 9px 20px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; font-family: inherit; }
@@ -140,7 +140,7 @@ export default function SettingsPage() {
           <div className="card">
             <div className="danger-title">Legal</div>
             <div className="danger-sub">Read our terms and privacy policy.</div>
-            <a href="/legal" style={{fontSize:'13px',color:'#6A61C9',textDecoration:'underline'}}>Terms of Service &amp; Privacy Policy →</a>
+            <a href="/legal" style={{fontSize:'13px',color:'#E10E1C',textDecoration:'underline'}}>Terms of Service &amp; Privacy Policy →</a>
           </div>
         </div>
       </div>

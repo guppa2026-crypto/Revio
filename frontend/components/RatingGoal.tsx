@@ -36,18 +36,18 @@ export default function RatingGoal({ rating, count }: { rating: number; count: n
   }
 
   const css = `
-    .rg-card { background: #fff; border: 1px solid #E0DCFA; border-left: 3px solid #7F77DD; border-radius: 14px; padding: 16px 20px; margin-bottom: 2rem; display: flex; align-items: center; gap: 14px; }
-    .rg-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #EFEDFB, #E3DEFA); color: #6A61C9; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rg-card { background: #fff; border: 1px solid #F8C9CC; border-left: 3px solid #E10E1C; border-radius: 14px; padding: 16px 20px; margin-bottom: 2rem; display: flex; align-items: center; gap: 14px; }
+    .rg-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #FDECEC, #FBD6D8); color: #E10E1C; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .rg-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9E9B93; margin-bottom: 3px; }
     .rg-headline { font-size: 15px; color: #1A1916; font-weight: 500; margin-bottom: 10px; }
     .rg-headline strong { font-weight: 600; }
-    .rg-num { color: #6A61C9; }
+    .rg-num { color: #E10E1C; }
     .rg-bar-wrap { display: flex; align-items: center; gap: 8px; }
     .rg-bar-label { font-size: 12px; font-weight: 600; color: #9E9B93; min-width: 22px; }
-    .rg-bar-target { color: #6A61C9; text-align: right; }
+    .rg-bar-target { color: #E10E1C; text-align: right; }
     .rg-bar-track { flex: 1; height: 6px; background: #ECEAE4; border-radius: 99px; position: relative; }
-    .rg-bar-fill { height: 100%; background: linear-gradient(90deg, #C4BFEF, #7F77DD); border-radius: 99px; transition: width 0.4s ease; }
-    .rg-bar-dot { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; border-radius: 50%; background: #7F77DD; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(127,119,221,0.4); transition: left 0.4s ease; }
+    .rg-bar-fill { height: 100%; background: linear-gradient(90deg, #F5B8BC, #E10E1C); border-radius: 99px; transition: width 0.4s ease; }
+    .rg-bar-dot { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; border-radius: 50%; background: #E10E1C; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(225,14,28,0.4); transition: left 0.4s ease; }
   `
 
   return (
