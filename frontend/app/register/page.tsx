@@ -170,7 +170,7 @@ export default function RegisterPage() {
                 </div>
               ))}
             </div>
-            <div className="auth-price">£18/month · no setup fee · cancel anytime</div>
+            <div className="auth-price">£12.99/month · no setup fee · cancel anytime</div>
           </div>
           <div className="auth-foot">© 2026 Revio · reviodigital.uk</div>
         </div>

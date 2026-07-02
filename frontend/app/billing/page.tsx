@@ -239,7 +239,7 @@ export default function BillingPage() {
                   <div className="bl-eyebrow">Your plan</div>
                   <div className="bl-plan-row">
                     <div className="bl-plan-name">Revio Pro</div>
-                    <div className="bl-plan-price">£18<span>/mo inc VAT</span></div>
+                    <div className="bl-plan-price">£12.99<span>/mo inc VAT</span></div>
                   </div>
                   <div className="bl-features">
                     {PLAN_FEATURES.map(f => (
@@ -265,7 +265,7 @@ export default function BillingPage() {
                   <div className="bl-divider" />
                   {!status?.is_subscribed ? (
                     <button className="bl-btn bl-btn-primary" disabled={subscribing} onClick={handleSubscribe}>
-                      {subscribing ? 'Redirecting to checkout…' : <>Subscribe for £18/month <ArrowRight size={15} /></>}
+                      {subscribing ? 'Redirecting to checkout…' : <>Subscribe for £12.99/month <ArrowRight size={15} /></>}
                     </button>
                   ) : (
                     <button className="bl-btn bl-btn-cancel" disabled={cancelling} onClick={handleCancel}>

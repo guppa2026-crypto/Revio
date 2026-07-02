@@ -137,7 +137,7 @@ export default function OnboardingPage() {
               <div className="step-num">3</div>
               <div className="step-body">
                 <h3>Subscribe to go live</h3>
-                <p>£18/month — cancel anytime. Reviews start syncing as soon as you subscribe.</p>
+                <p>£12.99/month — cancel anytime. Reviews start syncing as soon as you subscribe.</p>
               </div>
             </div>
           </div>

@@ -79,7 +79,7 @@ function LegalContent() {
 
               <h2>6. Subscription, fees and payment</h2>
               <ul>
-                <li>Access to the Service requires a paid subscription, currently £18 per month (inclusive of VAT), unless otherwise agreed with you in writing.</li>
+                <li>Access to the Service requires a paid subscription, currently £12.99 per month (inclusive of VAT), unless otherwise agreed with you in writing.</li>
                 <li>Payment is processed securely by Stripe. By subscribing, you authorise us to charge your chosen payment method automatically on each renewal date until you cancel.</li>
                 <li>Your subscription renews automatically each month unless cancelled beforehand. Cancel any time from the billing page in your dashboard — cancellation takes effect at the end of the current billing period and you will not be charged again after that.</li>
                 <li><strong>We do not offer refunds</strong>, including for partial months, unused features, or periods where you did not use the Service, except where required by law.</li>

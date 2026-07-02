@@ -442,7 +442,7 @@ export default function DashboardPage() {
             {locked ? (
               <div className="paywall">
                 <h2>Upgrade to Pro</h2>
-                <p>Subscribe for £18/month to unlock review management, AI replies, and your rating goal tracker.</p>
+                <p>Subscribe for £12.99/month to unlock review management, AI replies, and your rating goal tracker.</p>
                 <button className="paywall-btn" onClick={() => router.push('/billing')}>View plans</button>
               </div>
             ) : (

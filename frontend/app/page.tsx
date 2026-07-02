@@ -235,7 +235,7 @@ export default function HomePage() {
               </a>
               <a className="btn-light" href="#how">See how it works</a>
             </div>
-            <div className="hero-note">£18/month · no setup fee · cancel anytime</div>
+            <div className="hero-note">£12.99/month · no setup fee · cancel anytime</div>
           </div>
 
           <div className="preview-wrap">
@@ -398,7 +398,7 @@ export default function HomePage() {
             </div>
             <div className="price-card">
               <div className="price-label">Revio Pro</div>
-              <div className="price-amount">£18<span className="price-period">/month</span></div>
+              <div className="price-amount">£12.99<span className="price-period">/month</span></div>
               <div className="price-vat">inc. VAT</div>
               <div className="price-features">
                 {[
