@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://reviodigital.uk"),
   title: {
-    default: "Revio — AI-powered Google review replies for UK businesses",
+    default: "Revio — AI-powered Google review replies for small businesses",
     template: "%s · Revio",
   },
   description:
-    "Revio manages and replies to your Google reviews automatically using AI. Approve, edit or auto-post replies in seconds. Built for small UK businesses.",
+    "Revio manages and replies to your Google reviews automatically using AI. Approve, edit or auto-post replies in seconds. Built for small businesses everywhere.",
   openGraph: {
     title: "Revio — AI-powered Google review replies",
     description:
-      "Automatically manage and reply to your Google reviews. Built for small UK businesses.",
+      "Automatically manage and reply to your Google reviews. Built for small businesses everywhere.",
     url: "https://reviodigital.uk",
     siteName: "Revio",
     locale: "en_GB",

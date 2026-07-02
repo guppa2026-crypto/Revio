@@ -220,7 +220,7 @@ export default function HomePage() {
           <div className="hero-left">
             <div className="hero-tag">
               <span className="hero-tag-dot" />
-              For UK small businesses
+              For small businesses
             </div>
             <h1 className="hero-h1">
               Your Google reviews,<br />
@@ -322,7 +322,7 @@ export default function HomePage() {
         <div className="features-wrap">
           <div className="section-eyebrow">Why Revio</div>
           <h2 className="section-h2">Built to handle the edge cases</h2>
-          <p className="features-intro">Built for UK small businesses — natural, human tone, safe-by-default, and simple enough for non-technical owners to trust.</p>
+          <p className="features-intro">Built for small businesses — natural, human tone, safe-by-default, and simple enough for non-technical owners to trust.</p>
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon feature-icon-red"><Zap size={20} /></div>
