@@ -179,7 +179,7 @@ def import_review(
     db.add(review)
     db.flush()
     try:
-        processed = process_review(review, db, tenant.name)
+        processed = process_review(review, db, tenant.name, tone_instructions=tenant.tone_instructions or "")
     except Exception:
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to process review — please try again")

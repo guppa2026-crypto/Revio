@@ -1,8 +1,15 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LayoutDashboard, CreditCard, Settings, RefreshCw, LogOut, Menu } from 'lucide-react'
 import api from '@/lib/api'
+
+const TONE_PRESETS = [
+  { label: 'Professional', value: 'Keep replies formal and professional. Avoid casual language. Use complete sentences and a respectful, business-like tone at all times.' },
+  { label: 'Warm & friendly', value: 'Be warm, approachable, and conversational — like talking to a friendly neighbour. Use first-name terms where natural. Avoid stiff corporate language.' },
+  { label: 'Concise', value: 'Keep all replies short and to the point. No filler sentences. Maximum 2-3 sentences regardless of the rating.' },
+  { label: 'Casual', value: 'Use a relaxed, casual tone. Contractions are fine. Sound like a real person, not a company. Friendly and laid-back.' },
+]
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -14,6 +21,37 @@ export default function SettingsPage() {
   const [pwLoading, setPwLoading] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [disconnected, setDisconnected] = useState(false)
+  const [toneInstructions, setToneInstructions] = useState('')
+  const [toneSaving, setToneSaving] = useState(false)
+  const [toneSuccess, setToneSuccess] = useState('')
+  const [portalLoading, setPortalLoading] = useState(false)
+
+  useEffect(() => {
+    api.get('/settings').then(res => setToneInstructions(res.data.tone_instructions || '')).catch(() => {})
+  }, [])
+
+  const handleSaveTone = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setToneSaving(true)
+    setToneSuccess('')
+    try {
+      await api.patch('/settings', { tone_instructions: toneInstructions })
+      setToneSuccess('Voice settings saved.')
+    } finally {
+      setToneSaving(false)
+    }
+  }
+
+  const handleManageBilling = async () => {
+    setPortalLoading(true)
+    try {
+      const res = await api.post('/billing/portal')
+      window.location.href = res.data.portal_url
+    } catch {
+      alert('Could not open billing portal. Make sure you have an active subscription.')
+      setPortalLoading(false)
+    }
+  }
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,6 +144,12 @@ export default function SettingsPage() {
     .st-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
     .st-card-link { font-size: 13px; color: #E10E1C; font-weight: 600; text-decoration: none; }
     .st-card-link:hover { text-decoration: underline; }
+    .st-textarea { width: 100%; font-size: 14px; color: #1A1916; background: #FAFAF8; border: 1.5px solid #E5E3DC; border-radius: 10px; padding: 10px 13px; font-family: inherit; outline: none; resize: vertical; min-height: 90px; transition: border-color 0.15s, box-shadow 0.15s; line-height: 1.55; }
+    .st-textarea:focus { border-color: #111110; box-shadow: 0 0 0 3px rgba(17,17,16,0.06); background: #fff; }
+    .st-char-count { font-size: 12px; color: #B8B4AC; text-align: right; margin-top: 5px; }
+    .st-presets { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+    .st-preset { font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 99px; border: 1.5px solid #E5E3DC; background: #fff; color: #6B6963; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .st-preset:hover { border-color: #111110; color: #111110; }
 
     @media (max-width: 768px) {
       .st-sidebar { transform: translateX(-100%); }
@@ -217,10 +261,38 @@ export default function SettingsPage() {
             </div>
 
             <div className="st-card">
+              <div className="st-card-title">AI reply voice</div>
+              <div className="st-card-sub">Describe how you want your replies to sound. The AI will follow this when writing every reply — be as specific as you like.</div>
+              <div className="st-presets">
+                {TONE_PRESETS.map(p => (
+                  <button key={p.label} type="button" className="st-preset" onClick={() => setToneInstructions(p.value)}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <form onSubmit={handleSaveTone}>
+                <div className="st-field">
+                  <label>Voice instructions</label>
+                  <textarea
+                    className="st-textarea"
+                    value={toneInstructions}
+                    onChange={e => setToneInstructions(e.target.value.slice(0, 500))}
+                    placeholder="e.g. Warm and friendly, like talking to a neighbour. Never overly formal. Use the customer's name when it feels natural."
+                  />
+                  <div className="st-char-count">{toneInstructions.length}/500</div>
+                </div>
+                <button className="st-btn st-btn-primary" type="submit" disabled={toneSaving}>
+                  {toneSaving ? 'Saving…' : 'Save voice settings'}
+                </button>
+                {toneSuccess && <div className="st-success">{toneSuccess}</div>}
+              </form>
+            </div>
+
+            <div className="st-card">
               <div className="st-card-title">Billing &amp; subscription</div>
-              <div className="st-card-sub">Manage your Revio Pro subscription and payment method.</div>
-              <button className="st-btn st-btn-primary" onClick={() => router.push('/billing')}>
-                Go to billing →
+              <div className="st-card-sub">Update your payment method, download invoices, or cancel your subscription — all handled securely by Stripe.</div>
+              <button className="st-btn st-btn-primary" onClick={handleManageBilling} disabled={portalLoading}>
+                {portalLoading ? 'Opening…' : 'Manage billing →'}
               </button>
             </div>
 

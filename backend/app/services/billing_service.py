@@ -29,6 +29,14 @@ def cancel_subscription(stripe_subscription_id: str) -> bool:
         return False
 
 
+def create_portal_session(stripe_customer_id: str, return_url: str) -> str:
+    session = stripe.billing_portal.Session.create(
+        customer=stripe_customer_id,
+        return_url=return_url,
+    )
+    return session.url
+
+
 def get_subscription(stripe_subscription_id: str):
     try:
         return stripe.Subscription.retrieve(stripe_subscription_id)

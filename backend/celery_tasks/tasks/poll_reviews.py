@@ -39,7 +39,7 @@ def _poll_tenant(tenant, db):
         db.add(review)
         db.flush()
         try:
-            process_review(review, db)
+            process_review(review, db, business_name=tenant.name, tone_instructions=tenant.tone_instructions or "")
             db.commit()
             db.refresh(review)
             if review.risk_level == "low" and review.status == "approved":

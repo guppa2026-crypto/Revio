@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.services.billing_service import create_checkout_session, cancel_subscription, get_subscription
+from app.services.billing_service import create_checkout_session, cancel_subscription, get_subscription, create_portal_session
 from app.utils.dependencies import get_current_user
 from app.config import settings
 
@@ -61,6 +61,18 @@ def billing_status(
         "subscription_status": tenant.subscription_status,
         "current_period_end": subscription.get("current_period_end") if subscription else None,
     }
+
+
+@router.post("/portal")
+def billing_portal(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
+    if not tenant or not tenant.stripe_customer_id:
+        raise HTTPException(status_code=400, detail="No billing account found. Please subscribe first.")
+    url = create_portal_session(tenant.stripe_customer_id, f"{settings.FRONTEND_URL}/settings")
+    return {"portal_url": url}
 
 
 @router.post("/cancel")

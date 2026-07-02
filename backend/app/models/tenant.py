@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Column, String, Boolean, DateTime, Text
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, timezone
 import uuid
@@ -23,6 +23,7 @@ class Tenant(Base):
     google_token_expiry = Column(DateTime, nullable=True)
     google_account_id = Column(String, nullable=True)
     google_location_id = Column(String, nullable=True)
+    tone_instructions = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

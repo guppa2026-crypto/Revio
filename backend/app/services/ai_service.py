@@ -39,7 +39,7 @@ Risk level rules:
     return json.loads(result)
 
 
-def generate_reply(review_text: str, rating: int, business_name: str, risk_level: str = "low") -> str:
+def generate_reply(review_text: str, rating: int, business_name: str, risk_level: str = "low", tone_instructions: str = "") -> str:
     if risk_level == "high":
         tone_instruction = """
 This review contains serious concerns — it may include legal threats, safety allegations, severe complaints,
@@ -114,7 +114,10 @@ Additional rules:
 - Sound human — contractions, natural phrasing, no corporate jargon
 - Vary your opening line between replies — never default to a stock phrase. Never start with "Thank you for your review" or "We're sorry to hear that"
 - Do not use bullet points or formatting — write in flowing prose
-
+{f'''
+Business voice instructions (follow these above all other tone guidance):
+{tone_instructions.strip()}
+''' if tone_instructions and tone_instructions.strip() else ''}
 Write only the reply text, nothing else.
 """
 

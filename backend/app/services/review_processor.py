@@ -8,7 +8,7 @@ from app.services.ai_service import analyze_review, generate_reply
 logger = logging.getLogger(__name__)
 
 
-def process_review(review: Review, db: Session, business_name: str = "Our Business") -> Review:
+def process_review(review: Review, db: Session, business_name: str = "Our Business", tone_instructions: str = "") -> Review:
     logger.info("Analyzing review %s...", review.id)
     analysis = analyze_review(review.review_text or "", review.rating)
 
@@ -17,21 +17,21 @@ def process_review(review: Review, db: Session, business_name: str = "Our Busine
     review.risk_reason = analysis.get("risk_reason")
 
     if review.risk_level == "high":
-        reply = generate_reply(review.review_text or "", review.rating, business_name, risk_level="high")
+        reply = generate_reply(review.review_text or "", review.rating, business_name, risk_level="high", tone_instructions=tone_instructions)
         review.generated_reply = reply
         review.status = "flagged"
         logger.info("Review %s flagged as HIGH RISK — draft generated", review.id)
         _notify_flagged(review, db)
 
     elif review.risk_level == "medium":
-        reply = generate_reply(review.review_text or "", review.rating, business_name)
+        reply = generate_reply(review.review_text or "", review.rating, business_name, tone_instructions=tone_instructions)
         review.generated_reply = reply
         review.status = "pending"
         logger.info("Review %s needs approval", review.id)
         _notify_approval_needed(review, db)
 
     else:
-        reply = generate_reply(review.review_text or "", review.rating, business_name)
+        reply = generate_reply(review.review_text or "", review.rating, business_name, tone_instructions=tone_instructions)
         review.generated_reply = reply
         if review.rating >= 4:
             review.status = "scheduled"
