@@ -28,7 +28,7 @@ describe('LoginPage', () => {
   it('renders email and password fields and a submit button', () => {
     render(<LoginPage />)
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
+    expect(screen.getByLabelText('Password')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 
@@ -42,7 +42,7 @@ describe('LoginPage', () => {
     render(<LoginPage />)
 
     await userEvent.type(screen.getByLabelText(/email/i), 'user@example.com')
-    await userEvent.type(screen.getByLabelText(/password/i), 'Secret1!')
+    await userEvent.type(screen.getByLabelText('Password'),'Secret1!')
     fireEvent.submit(screen.getByRole('button', { name: /sign in/i }).closest('form')!)
 
     await waitFor(() => {
@@ -59,11 +59,11 @@ describe('LoginPage', () => {
     render(<LoginPage />)
 
     await userEvent.type(screen.getByLabelText(/email/i), 'bad@example.com')
-    await userEvent.type(screen.getByLabelText(/password/i), 'wrong')
+    await userEvent.type(screen.getByLabelText('Password'),'wrong')
     fireEvent.submit(screen.getByRole('button', { name: /sign in/i }).closest('form')!)
 
     await waitFor(() => {
-      expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument()
+      expect(screen.getByText(/incorrect email or password/i)).toBeInTheDocument()
     })
     expect(mockPush).not.toHaveBeenCalled()
   })
@@ -74,7 +74,7 @@ describe('LoginPage', () => {
     render(<LoginPage />)
 
     await userEvent.type(screen.getByLabelText(/email/i), 'user@example.com')
-    await userEvent.type(screen.getByLabelText(/password/i), 'Secret1!')
+    await userEvent.type(screen.getByLabelText('Password'),'Secret1!')
     fireEvent.submit(screen.getByRole('button', { name: /sign in/i }).closest('form')!)
 
     await waitFor(() => {
@@ -87,7 +87,7 @@ describe('LoginPage', () => {
 
   it('has a link to the register page', () => {
     render(<LoginPage />)
-    const link = screen.getByRole('link', { name: /sign up/i })
+    const link = screen.getByRole('link', { name: /create an account/i })
     expect(link).toHaveAttribute('href', '/register')
   })
 })
