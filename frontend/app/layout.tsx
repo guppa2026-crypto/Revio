@@ -29,6 +29,11 @@ export const metadata: Metadata = {
     locale: "en_GB",
     type: "website",
   },
+  icons: {
+    icon: [{ url: "/revio-icon.png", type: "image/png" }],
+    apple: "/revio-icon.png",
+    shortcut: "/revio-icon.png",
+  },
 };
 
 export default function RootLayout({

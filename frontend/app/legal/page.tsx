@@ -32,11 +32,7 @@ function LegalContent() {
       font-size: 17px; font-weight: 800; color: #fff;
       letter-spacing: -0.02em; text-decoration: none;
     }
-    .lg-logo-icon {
-      width: 28px; height: 28px; border-radius: 7px;
-      background: #E10E1C; display: flex; align-items: center; justify-content: center;
-    }
-    .lg-logo-icon svg { width: 14px; height: 14px; fill: #fff; }
+    .lg-logo-icon { height: 26px; width: auto; display: block; }
     .lg-nav-right { display: flex; align-items: center; gap: 20px; }
     .lg-nav-link { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.5); text-decoration: none; transition: color 0.15s; }
     .lg-nav-link:hover { color: rgba(255,255,255,0.85); }
@@ -164,9 +160,8 @@ function LegalContent() {
       {/* NAV */}
       <nav className="lg-nav">
         <a className="lg-logo" href="/">
-          <div className="lg-logo-icon">
-            <svg viewBox="0 0 14 14"><path d="M7 1L2 4v6l5 3 5-3V4L7 1z"/></svg>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/revio-icon.png" alt="Revio" className="lg-logo-icon" />
           Revio
         </a>
         <div className="lg-nav-right">
