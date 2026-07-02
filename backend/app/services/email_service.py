@@ -92,6 +92,27 @@ def send_new_signup_notification(business_name: str, business_email: str) -> Non
         send_email(admin_email, subject, html_body)
 
 
+def send_password_reset_email(to_email: str, reset_url: str) -> bool:
+    subject = "Reset your Revio password"
+    html_body = f"""
+    <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;color:#1A1916;">
+    <h2 style="font-size:22px;font-weight:700;margin-bottom:8px;">Reset your password</h2>
+    <p style="color:#5F5E5A;margin-bottom:24px;line-height:1.6;">
+      We received a request to reset the password for your Revio account.
+      Click the button below — the link expires in <strong>30 minutes</strong>.
+    </p>
+    <p style="margin-bottom:28px;">
+      <a href="{reset_url}" style="background:#E10E1C;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Reset password →</a>
+    </p>
+    <p style="font-size:13px;color:#9E9B93;line-height:1.6;">
+      If you didn't request this, you can ignore this email — your password won't change.<br>
+      If the button doesn't work, copy and paste this link: <span style="word-break:break-all;">{_e(reset_url)}</span>
+    </p>
+    </div>
+    """
+    return send_email(to_email, subject, html_body)
+
+
 def send_approval_needed(
     to_email: str,
     reviewer_name: str,

@@ -6,10 +6,13 @@ from app.database import get_db
 from app.models.user import User
 from app.models.tenant import Tenant
 from app.schemas.user import TenantCreate, UserLogin, Token
-from app.utils.security import hash_password, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.utils.security import (
+    hash_password, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES,
+    create_password_reset_token, decode_password_reset_token,
+)
 from app.utils.dependencies import get_current_user
 from app.utils.limiter import limiter
-from app.services.email_service import send_new_signup_notification
+from app.services.email_service import send_new_signup_notification, send_password_reset_email
 from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -125,3 +128,45 @@ def logout(response: Response):
     """Clear the auth cookie. The client should also discard any in-memory token."""
     response.delete_cookie(key="access_token", path="/", samesite="lax")
     return {"message": "Logged out"}
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+@router.post("/forgot-password")
+@limiter.limit("5/minute")
+def forgot_password(request: Request, data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == data.email).first()
+    if user:
+        fingerprint = user.hashed_password[:16]
+        token = create_password_reset_token(user.email, fingerprint)
+        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+        send_password_reset_email(user.email, reset_url)
+    # Always 200 — don't reveal whether the email exists
+    return {"message": "If that email is registered, a reset link has been sent."}
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+@router.post("/reset-password")
+@limiter.limit("10/minute")
+def reset_password(request: Request, data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    payload = decode_password_reset_token(data.token)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reset link is invalid or has expired.")
+
+    user = db.query(User).filter(User.email == payload["sub"]).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reset link is invalid or has expired.")
+
+    if user.hashed_password[:16] != payload.get("fp"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reset link has already been used.")
+
+    _validate_password(data.new_password)
+    user.hashed_password = hash_password(data.new_password)
+    db.commit()
+    return {"message": "Password reset successfully. You can now log in."}

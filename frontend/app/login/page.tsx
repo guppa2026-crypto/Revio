@@ -125,6 +125,9 @@ export default function LoginPage() {
     .auth-ftr { text-align: center; font-size: 14px; color: #6B6963; margin-top: 24px; }
     .auth-ftr a { color: #E10E1C; font-weight: 600; text-decoration: none; }
     .auth-ftr a:hover { text-decoration: underline; }
+    .auth-forgot { text-align: right; margin-top: -12px; margin-bottom: 20px; font-size: 13px; }
+    .auth-forgot a { color: #6B6963; text-decoration: none; }
+    .auth-forgot a:hover { color: #E10E1C; }
 
     @media (max-width: 768px) {
       .auth-brand { display: none; }
@@ -180,7 +183,10 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="auth-field">
-                <label htmlFor="password">Password</label>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px'}}>
+                  <label htmlFor="password" style={{fontSize:'13px',fontWeight:600,color:'#3A3834'}}>Password</label>
+                  <a href="/forgot-password" className="auth-forgot" style={{fontSize:'13px',color:'#6B6963',textDecoration:'none'}}>Forgot password?</a>
+                </div>
                 <div className="auth-wrap">
                   <input
                     id="password"
