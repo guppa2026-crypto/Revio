@@ -1,6 +1,7 @@
-import json
 import stripe
 import logging
+import redis
+from uuid import UUID as PyUUID
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -13,11 +14,29 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["billing"])
 
+_redis = redis.from_url(settings.REDIS_URL, decode_responses=True)
+
+
+def _mark_event_processed(event_id: str) -> bool:
+    """
+    Returns True if this event is new (should be processed).
+    Returns False if already processed (duplicate — skip it).
+    Fails open: if Redis is unavailable, always returns True to avoid blocking payments.
+    """
+    try:
+        key = f"stripe_evt:{event_id}"
+        # SET NX only sets the key when it doesn't exist; returns True if set, None if already existed
+        is_new = _redis.set(key, "1", nx=True, ex=604800)  # 7-day TTL
+        return is_new is not None
+    except Exception:
+        logger.warning("Redis unavailable for webhook dedup — processing event %s anyway", event_id)
+        return True
+
 
 @router.post("/create-checkout")
 def create_checkout(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant:
@@ -29,7 +48,7 @@ def create_checkout(
 @router.get("/status")
 def billing_status(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant:
@@ -47,7 +66,7 @@ def billing_status(
 @router.post("/cancel")
 def cancel_billing(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant or not tenant.stripe_subscription_id:
@@ -82,20 +101,26 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     obj = event["data"]["object"]
     logger.info("Stripe webhook received: %s (%s)", event_type, event_id)
 
+    # Idempotency guard — Stripe retries on non-2xx responses, so we deduplicate via Redis
+    if not _mark_event_processed(event_id):
+        logger.info("Stripe event %s already processed — skipping", event_id)
+        return {"status": "ok"}
+
     if event_type == "checkout.session.completed":
         metadata = obj.get("metadata") or {}
-        tenant_id = metadata.get("tenant_id")
-        if not tenant_id:
+        tenant_id_str = metadata.get("tenant_id")
+        if not tenant_id_str:
             logger.error("checkout.session.completed missing tenant_id — event %s", event_id)
+            return {"status": "ok"}
+        try:
+            tenant_id = PyUUID(tenant_id_str)
+        except (ValueError, TypeError):
+            logger.error("checkout.session.completed invalid tenant_id %r — event %s", tenant_id_str, event_id)
             return {"status": "ok"}
 
         tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
         if not tenant:
             logger.error("checkout.session.completed — tenant %s not found", tenant_id)
-            return {"status": "ok"}
-
-        if tenant.is_subscribed and tenant.stripe_subscription_id == obj.get("subscription"):
-            logger.info("Already processed for tenant %s, skipping", tenant_id)
             return {"status": "ok"}
 
         tenant.stripe_customer_id = obj.get("customer")

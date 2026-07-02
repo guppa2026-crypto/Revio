@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
@@ -9,15 +10,22 @@ from app.utils.dependencies import get_current_user
 from app.utils.limiter import limiter
 from app.database import engine
 from app.tasks.scheduler import start_scheduler, stop_scheduler
+from app.config import settings
 
+
+import logging
+logger = logging.getLogger(__name__)
 
 def _migrate_db():
     """Add any new columns that don't exist yet (safe to run on every startup)."""
-    with engine.connect() as conn:
-        conn.execute(text(
-            "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reply_at TIMESTAMP;"
-        ))
-        conn.commit()
+    try:
+        with engine.connect() as conn:
+            conn.execute(text(
+                "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reply_at TIMESTAMP;"
+            ))
+            conn.commit()
+    except Exception as exc:
+        logger.warning("Migration step skipped (non-PostgreSQL env or column already exists): %s", exc)
 
 
 @asynccontextmanager
@@ -28,24 +36,40 @@ async def lifespan(_app: FastAPI):
     stop_scheduler()
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to every response."""
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response: Response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        if not settings.DEBUG:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+
 app = FastAPI(
     title="Review SaaS API",
     description="AI-powered review management platform",
     version="0.1.0",
     lifespan=lifespan,
+    # Hide interactive docs in production to reduce attack surface
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
 )
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Security headers must be added before CORS so they apply to all responses
+app.add_middleware(SecurityHeadersMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://revio-42f3.vercel.app",
-        "https://reviodigital.uk",
-        "https://www.reviodigital.uk",
-    ],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,18 +81,21 @@ app.include_router(billing.router)
 app.include_router(admin.router)
 app.include_router(google.router)
 
+
 @app.get("/")
 def root():
     return {"status": "ok", "message": "Review SaaS API is running"}
+
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
 
+
 @app.get("/me")
-def get_me(current_user = Depends(get_current_user)):
+def get_me(current_user=Depends(get_current_user)):
     return {
         "id": str(current_user.id),
         "email": current_user.email,
-        "full_name": current_user.full_name
+        "full_name": current_user.full_name,
     }

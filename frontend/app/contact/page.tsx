@@ -9,7 +9,7 @@ export default function ContactPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    window.location.href = `mailto:guppa2026@gmail.com?subject=Revio enquiry from ${encodeURIComponent(name)}&body=${encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`)}`
+    window.location.href = `mailto:reviodigital2026@gmail.com?subject=Revio enquiry from ${encodeURIComponent(name)}&body=${encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`)}`
     setSent(true)
   }
 
@@ -48,7 +48,7 @@ export default function ContactPage() {
           <div className="card">
             {sent ? (
               <div className="success">
-                Your email client should have opened. If not, email us directly at <strong>guppa2026@gmail.com</strong>.
+                Your email client should have opened. If not, email us directly at <strong>reviodigital2026@gmail.com</strong>.
               </div>
             ) : (
               <form onSubmit={handleSubmit}>
@@ -68,7 +68,7 @@ export default function ContactPage() {
               </form>
             )}
             <div className="direct">
-              Or email directly: <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a>
+              Or email directly: <a href="mailto:reviodigital2026@gmail.com">reviodigital2026@gmail.com</a>
             </div>
           </div>
         </div>

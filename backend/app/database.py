@@ -3,16 +3,22 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
-# Create the database engine
-engine = create_engine(settings.DATABASE_URL)
+_pool_kwargs: dict = {}
+if not settings.DATABASE_URL.startswith("sqlite"):
+    _pool_kwargs = dict(
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,
+        pool_recycle=1800,
+    )
 
-# Each request gets its own session
+engine = create_engine(settings.DATABASE_URL, **_pool_kwargs)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# All models will inherit from this
 Base = declarative_base()
 
-# Dependency - used in API endpoints to get a database session
+
 def get_db():
     db = SessionLocal()
     try:

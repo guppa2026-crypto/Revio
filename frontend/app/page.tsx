@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Star, Shield, Zap, CheckCircle, ArrowRight, Mail, Lock, MessageSquare, ChevronDown } from 'lucide-react'
+import api from '@/lib/api'
 
 const FAQS = [
   {
@@ -30,7 +31,9 @@ export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
 
   useEffect(() => {
-    setLoggedIn(!!localStorage.getItem('token'))
+    api.get('/me')
+      .then(() => setLoggedIn(true))
+      .catch(() => setLoggedIn(false))
   }, [])
 
   const primaryHref = loggedIn ? '/dashboard' : '/register'

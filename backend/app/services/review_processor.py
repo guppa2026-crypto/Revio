@@ -2,59 +2,55 @@ import logging
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from app.models.review import Review
+from app.models.tenant import Tenant
 from app.services.ai_service import analyze_review, generate_reply
 
 logger = logging.getLogger(__name__)
 
-def process_review(review: Review, db: Session, business_name: str = "Our Business"):
-    # Step 1 - Analyze
+
+def process_review(review: Review, db: Session, business_name: str = "Our Business") -> Review:
     logger.info("Analyzing review %s...", review.id)
     analysis = analyze_review(review.review_text or "", review.rating)
 
-    # Step 2 - Store analysis
     review.sentiment = analysis.get("sentiment")
     review.risk_level = analysis.get("risk_level")
     review.risk_reason = analysis.get("risk_reason")
 
-    # Step 3 - Handle by risk level
     if review.risk_level == "high":
         reply = generate_reply(review.review_text or "", review.rating, business_name, risk_level="high")
         review.generated_reply = reply
         review.status = "flagged"
         logger.info("Review %s flagged as HIGH RISK — draft generated", review.id)
-        _notify_flagged(review)
+        _notify_flagged(review, db)
 
     elif review.risk_level == "medium":
         reply = generate_reply(review.review_text or "", review.rating, business_name)
         review.generated_reply = reply
         review.status = "pending"
         logger.info("Review %s needs approval", review.id)
-        _notify_approval_needed(review)
+        _notify_approval_needed(review, db)
 
     else:
         reply = generate_reply(review.review_text or "", review.rating, business_name)
         review.generated_reply = reply
         if review.rating >= 4:
-            # Low-risk, positive review: schedule auto-reply after 24h delay
             review.status = "scheduled"
             review.reply_at = datetime.now(timezone.utc) + timedelta(hours=24)
             logger.info("Review %s scheduled for auto-reply in 24h", review.id)
         else:
-            # Low-risk but not strongly positive: still needs manual approval
             review.status = "pending"
             logger.info("Review %s queued for manual approval", review.id)
-            _notify_approval_needed(review)
+            _notify_approval_needed(review, db)
 
     db.commit()
     db.refresh(review)
     return review
 
-def _notify_flagged(review: Review):
+
+def _notify_flagged(review: Review, db: Session) -> None:
     try:
         from app.services.email_service import send_flagged_review_alert
-        from app.database import SessionLocal
-        db = SessionLocal()
-        tenant = db.query(__import__('app.models.tenant', fromlist=['Tenant']).Tenant).filter_by(id=review.tenant_id).first()
+        tenant = db.query(Tenant).filter(Tenant.id == review.tenant_id).first()
         if tenant and tenant.email:
             send_flagged_review_alert(
                 tenant.email,
@@ -63,16 +59,14 @@ def _notify_flagged(review: Review):
                 review.review_text or "",
                 review.generated_reply or "",
             )
-        db.close()
-    except Exception as e:
-        logger.exception("Failed to send flagged alert: %s", e)
+    except Exception:
+        logger.exception("Failed to send flagged alert for review %s", review.id)
 
-def _notify_approval_needed(review: Review):
+
+def _notify_approval_needed(review: Review, db: Session) -> None:
     try:
         from app.services.email_service import send_approval_needed
-        from app.database import SessionLocal
-        db = SessionLocal()
-        tenant = db.query(__import__('app.models.tenant', fromlist=['Tenant']).Tenant).filter_by(id=review.tenant_id).first()
+        tenant = db.query(Tenant).filter(Tenant.id == review.tenant_id).first()
         if tenant and tenant.email:
             send_approval_needed(
                 tenant.email,
@@ -81,6 +75,5 @@ def _notify_approval_needed(review: Review):
                 review.review_text or "",
                 review.generated_reply or "",
             )
-        db.close()
-    except Exception as e:
-        logger.exception("Failed to send approval needed email: %s", e)
+    except Exception:
+        logger.exception("Failed to send approval needed email for review %s", review.id)

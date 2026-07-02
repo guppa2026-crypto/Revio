@@ -53,7 +53,7 @@ function LegalContent() {
               <p className="updated">Last updated: 19 June 2026</p>
 
               <h2>1. Who we are</h2>
-              <p>Revio is a trading name of Guppa, a sole trader based in England ("we", "us", "our", or "Revio"). These Terms of Service ("Terms") govern your access to and use of the Revio platform, dashboard, and related services (the "Service"). You can contact us at <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a>.</p>
+              <p>Revio is a trading name of Guppa, a sole trader based in England ("we", "us", "our", or "Revio"). These Terms of Service ("Terms") govern your access to and use of the Revio platform, dashboard, and related services (the "Service"). You can contact us at <a href="mailto:reviodigital2026@gmail.com">reviodigital2026@gmail.com</a>.</p>
 
               <h2>2. Acceptance of these terms</h2>
               <p>By creating an account, subscribing to, or otherwise using the Service, you confirm that you have read, understood, and agree to be bound by these Terms and by our Privacy Policy, which is incorporated into these Terms by reference. If you do not agree, you must not use the Service. You confirm you have the authority to enter into these Terms on behalf of the business you represent and to bind that business to them.</p>
@@ -67,7 +67,7 @@ function LegalContent() {
               <ul>
                 <li>You must be at least 18 years old and able to form a legally binding contract to use the Service.</li>
                 <li>You must provide accurate, current, and complete information when registering, and keep it up to date.</li>
-                <li>You are responsible for all activity under your account and for keeping your login credentials confidential. Notify us immediately at <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a> if you suspect unauthorised access.</li>
+                <li>You are responsible for all activity under your account and for keeping your login credentials confidential. Notify us immediately at <a href="mailto:reviodigital2026@gmail.com">reviodigital2026@gmail.com</a> if you suspect unauthorised access.</li>
                 <li>You confirm you have the legal right to connect the Google Business Profile you link to Revio, and that doing so does not breach any agreement you have with Google or any third party.</li>
               </ul>
 
@@ -85,7 +85,7 @@ function LegalContent() {
                 <li><strong>We do not offer refunds</strong>, including for partial months, unused features, or periods where you did not use the Service, except where required by law.</li>
                 <li>We may change our fees at any time, giving at least 30 days' notice by email of any increase. If you do not agree, you may cancel before the change takes effect.</li>
                 <li>If a payment fails or is reversed (including chargebacks), we may suspend or terminate your access immediately and without notice, and you remain liable for any amounts owed.</li>
-                <li>Please contact us first at <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a> to resolve any billing query before raising a dispute or chargeback with your card issuer or bank.</li>
+                <li>Please contact us first at <a href="mailto:reviodigital2026@gmail.com">reviodigital2026@gmail.com</a> to resolve any billing query before raising a dispute or chargeback with your card issuer or bank.</li>
               </ul>
 
               <h2>7. Your responsibilities and acceptable use</h2>
@@ -150,7 +150,7 @@ function LegalContent() {
               <p>These Terms, and any dispute or claim arising out of or in connection with them or their subject matter, are governed by and construed in accordance with the laws of England and Wales. You agree to submit to the exclusive jurisdiction of the courts of England and Wales.</p>
 
               <h2>20. Contact us</h2>
-              <p>If you have any questions about these Terms, please contact us at <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a>.</p>
+              <p>If you have any questions about these Terms, please contact us at <a href="mailto:reviodigital2026@gmail.com">reviodigital2026@gmail.com</a>.</p>
             </div>
           )}
 
@@ -163,7 +163,7 @@ function LegalContent() {
               <p>This Privacy Policy explains how Guppa, trading as Revio ("we", "us", "our"), collects, uses, shares, and protects personal data when you use the Revio service (the "Service"). It applies to all users of the Service. By using the Service, you confirm that you have read this Policy.</p>
 
               <h2>2. Who controls your data</h2>
-              <p>For the purposes of UK data protection law, Guppa (trading as Revio), a sole trader based in England, is the data controller of your account and subscription data. Contact us at <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a> for any privacy-related question or request.</p>
+              <p>For the purposes of UK data protection law, Guppa (trading as Revio), a sole trader based in England, is the data controller of your account and subscription data. Contact us at <a href="mailto:reviodigital2026@gmail.com">reviodigital2026@gmail.com</a> for any privacy-related question or request.</p>
 
               <h2>3. Information we collect</h2>
               <ul>
@@ -197,7 +197,7 @@ function LegalContent() {
               </ul>
 
               <h2>6. Data we process on your behalf</h2>
-              <p>When you connect your Google Business Profile, the reviews and reviewer information we fetch (such as a reviewer's name and review text) are personal data relating to your customers, not to you. In respect of that reviewer data, <strong>you act as the data controller, and we act as your data processor</strong>, processing it only on your instructions and for the purpose of providing the Service. You are responsible for ensuring you have a lawful basis for that data being processed via the Service, in the same way you already had a lawful basis to display and manage those reviews on your Google Business Profile. A data processing addendum reflecting these roles is available on request — email <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a>.</p>
+              <p>When you connect your Google Business Profile, the reviews and reviewer information we fetch (such as a reviewer's name and review text) are personal data relating to your customers, not to you. In respect of that reviewer data, <strong>you act as the data controller, and we act as your data processor</strong>, processing it only on your instructions and for the purpose of providing the Service. You are responsible for ensuring you have a lawful basis for that data being processed via the Service, in the same way you already had a lawful basis to display and manage those reviews on your Google Business Profile. A data processing addendum reflecting these roles is available on request — email <a href="mailto:reviodigital2026@gmail.com">reviodigital2026@gmail.com</a>.</p>
 
               <h2>7. Sharing your data with third parties</h2>
               <p>We share data with the following categories of third party, each acting under appropriate contractual safeguards:</p>
@@ -228,7 +228,7 @@ function LegalContent() {
                 <li>request a copy of your data in a portable format;</li>
                 <li>withdraw consent at any time, where processing is based on consent.</li>
               </ul>
-              <p>To exercise any of these rights, email <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a>. We will respond within one month, as required by law, and may need to verify your identity before acting on a request.</p>
+              <p>To exercise any of these rights, email <a href="mailto:reviodigital2026@gmail.com">reviodigital2026@gmail.com</a>. We will respond within one month, as required by law, and may need to verify your identity before acting on a request.</p>
 
               <h2>12. Automated decision-making</h2>
               <p>We use AI to draft review replies, but this does not involve solely automated decision-making that produces legal or similarly significant effects about you. Flagged or lower-rated reviews always require your explicit human approval before a reply is posted. For straightforward positive reviews, you retain a 24-hour window to review, edit, or cancel any reply from your dashboard before it is posted automatically.</p>
@@ -243,10 +243,10 @@ function LegalContent() {
               <p>We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements. We will notify you by email of any material changes. The "Last updated" date at the top of this page shows when this Policy was last revised.</p>
 
               <h2>16. Complaints</h2>
-              <p>If you have concerns about how we handle your personal data, please contact us first at <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a> so we can try to resolve the issue. You also have the right to lodge a complaint with the UK Information Commissioner's Office (ICO) at <a href="https://ico.org.uk" target="_blank">ico.org.uk</a>.</p>
+              <p>If you have concerns about how we handle your personal data, please contact us first at <a href="mailto:reviodigital2026@gmail.com">reviodigital2026@gmail.com</a> so we can try to resolve the issue. You also have the right to lodge a complaint with the UK Information Commissioner's Office (ICO) at <a href="https://ico.org.uk" target="_blank">ico.org.uk</a>.</p>
 
               <h2>17. Contact us</h2>
-              <p>For any questions about this Privacy Policy or our data practices, email <a href="mailto:guppa2026@gmail.com">guppa2026@gmail.com</a>.</p>
+              <p>For any questions about this Privacy Policy or our data practices, email <a href="mailto:reviodigital2026@gmail.com">reviodigital2026@gmail.com</a>.</p>
             </div>
           )}
         </div>

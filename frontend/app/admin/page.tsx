@@ -44,7 +44,7 @@ export default function AdminPage() {
     ])
       .then(([statsRes, customersRes]) => {
         setStats(statsRes.data)
-        setCustomers(customersRes.data)
+        setCustomers(customersRes.data.customers)
       })
       .catch((err) => {
         if (err.response?.status === 403) setError('Access denied.')
@@ -108,7 +108,7 @@ export default function AdminPage() {
           </div>
           <div className="nav-right">
             <button className="nav-btn" onClick={() => router.push('/dashboard')}>← Dashboard</button>
-            <button className="nav-btn" onClick={() => { localStorage.removeItem('token'); router.push('/login') }}>Sign out</button>
+            <button className="nav-btn" onClick={() => api.post('/auth/logout').finally(() => router.push('/login'))}>Sign out</button>
           </div>
         </nav>
 

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database import get_db
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -14,6 +14,7 @@ from app.config import settings
 from app.services.google_service import (
     refresh_access_token, get_accounts, get_locations, get_reviews, post_reply
 )
+from app.routers.reviews import require_subscription
 
 
 class SelectLocationRequest(BaseModel):
@@ -23,6 +24,7 @@ class SelectLocationRequest(BaseModel):
 
 class ReplyRequest(BaseModel):
     reply: str
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/google", tags=["google"])
@@ -34,7 +36,7 @@ SCOPES = ["https://www.googleapis.com/auth/business.manage"]
 def google_connect(current_user: User = Depends(get_current_user)):
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
-        "redirect_uri": "https://revio-production-4d73.up.railway.app/google/callback",
+        "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
         "response_type": "code",
         "scope": " ".join(SCOPES),
         "access_type": "offline",
@@ -54,9 +56,9 @@ async def google_callback(code: str, state: str, db: Session = Depends(get_db)):
                 "code": code,
                 "client_id": settings.GOOGLE_CLIENT_ID,
                 "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "redirect_uri": "https://revio-production-4d73.up.railway.app/google/callback",
+                "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
                 "grant_type": "authorization_code",
-            }
+            },
         )
     tokens = token_res.json()
     if "error" in tokens:
@@ -68,17 +70,17 @@ async def google_callback(code: str, state: str, db: Session = Depends(get_db)):
 
     tenant.google_access_token = tokens.get("access_token")
     tenant.google_refresh_token = tokens.get("refresh_token")
-    tenant.google_token_expiry = datetime.utcnow() + timedelta(seconds=tokens.get("expires_in", 3600))
+    tenant.google_token_expiry = datetime.now(timezone.utc) + timedelta(seconds=tokens.get("expires_in", 3600))
     db.commit()
     logger.info("Google OAuth completed for tenant %s", tenant.id)
 
-    return RedirectResponse("https://reviodigital.uk/dashboard?google=connected")
+    return RedirectResponse(f"{settings.FRONTEND_URL}/dashboard?google=connected")
 
 
 @router.get("/status")
 def google_status(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     return {
@@ -91,7 +93,7 @@ def google_status(
 @router.post("/disconnect")
 def google_disconnect(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     tenant.google_access_token = None
@@ -103,41 +105,10 @@ def google_disconnect(
     return {"message": "Google disconnected"}
 
 
-@router.get("/debug")
-async def google_debug(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Temporary debug endpoint — returns raw Google API response."""
-    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
-    if not tenant or not tenant.google_access_token:
-        return {"error": "No Google token stored for this account"}
-    try:
-        token = await refresh_access_token(tenant, db)
-    except Exception as e:
-        return {"error": f"Token refresh failed: {e}"}
-
-    results = {}
-    async with httpx.AsyncClient() as client:
-        # Check what scopes this token actually has
-        ti = await client.get(f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={token}")
-        results["token_info"] = ti.json()
-
-        # Raw accounts response
-        ar = await client.get(
-            "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        results["accounts_response"] = ar.json()
-        results["accounts_status"] = ar.status_code
-
-    return results
-
-
 @router.get("/accounts")
 async def list_accounts(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant or not tenant.google_access_token:
@@ -155,9 +126,8 @@ async def list_accounts(
 async def list_locations(
     account_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-    """List all locations for a GMB account."""
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant or not tenant.google_access_token:
         raise HTTPException(status_code=400, detail="Google not connected")
@@ -174,7 +144,7 @@ async def list_locations(
 async def select_location(
     payload: SelectLocationRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     tenant.google_account_id = payload.account_id
@@ -186,18 +156,18 @@ async def select_location(
 @router.get("/reviews")
 async def fetch_reviews(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    tenant: Tenant = Depends(require_subscription),
 ):
-    """Fetch reviews from Google for the tenant's selected location."""
-    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
-    if not tenant or not tenant.google_access_token:
+    """Fetch reviews from Google for the tenant's selected location. Requires active subscription."""
+    if not tenant.google_access_token:
         raise HTTPException(status_code=400, detail="Google not connected")
     if not tenant.google_account_id or not tenant.google_location_id:
         raise HTTPException(status_code=400, detail="No location selected — call /select-location first")
     try:
         token = await refresh_access_token(tenant, db)
-        reviews = await get_reviews(token, tenant.google_account_id, tenant.google_location_id)
-        return {"reviews": reviews, "count": len(reviews)}
+        fetched = await get_reviews(token, tenant.google_account_id, tenant.google_location_id)
+        return {"reviews": fetched, "count": len(fetched)}
     except Exception:
         logger.exception("Failed to fetch reviews from Google for tenant %s", current_user.tenant_id)
         raise HTTPException(status_code=502, detail="Failed to fetch reviews from Google")
@@ -208,16 +178,23 @@ async def reply_to_review(
     review_id: str,
     payload: ReplyRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    tenant: Tenant = Depends(require_subscription),
 ):
-    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
-    if not tenant or not tenant.google_access_token:
+    """Post a reply to a Google review. Requires active subscription."""
+    if not tenant.google_access_token:
         raise HTTPException(status_code=400, detail="Google not connected")
     if not tenant.google_account_id or not tenant.google_location_id:
         raise HTTPException(status_code=400, detail="No location selected")
     try:
         token = await refresh_access_token(tenant, db)
-        result = await post_reply(token, tenant.google_account_id, tenant.google_location_id, review_id, payload.reply)
+        result = await post_reply(
+            token,
+            tenant.google_account_id,
+            tenant.google_location_id,
+            review_id,
+            payload.reply,
+        )
         return {"message": "Reply posted", "result": result}
     except Exception:
         logger.exception("Failed to post reply to Google for review %s", review_id)

@@ -1,6 +1,6 @@
 import httpx
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from app.models.tenant import Tenant
 from app.config import settings
@@ -13,10 +13,16 @@ REVIEWS_BASE = "https://mybusiness.googleapis.com/v4"
 
 
 async def refresh_access_token(tenant: Tenant, db: Session) -> str:
-    """Refresh the access token if expired. Returns a valid access token."""
-    if tenant.google_token_expiry and datetime.utcnow() < tenant.google_token_expiry - timedelta(minutes=5):
-        return tenant.google_access_token
+    """Return a valid Google access token, refreshing if expired or expiry unknown."""
+    now = datetime.now(timezone.utc)
 
+    if tenant.google_token_expiry is not None:
+        # DB stores naive UTC; attach UTC tzinfo for comparison
+        expiry_utc = tenant.google_token_expiry.replace(tzinfo=timezone.utc)
+        if now < expiry_utc - timedelta(minutes=5):
+            return tenant.google_access_token
+
+    # Expiry is unknown or token is within 5 minutes of expiring — refresh now
     if not tenant.google_refresh_token:
         raise Exception("No refresh token available — user must reconnect Google")
 
@@ -33,18 +39,17 @@ async def refresh_access_token(tenant: Tenant, db: Session) -> str:
         raise Exception(f"Token refresh failed: {data['error']}")
 
     tenant.google_access_token = data["access_token"]
-    tenant.google_token_expiry = datetime.utcnow() + timedelta(seconds=data.get("expires_in", 3600))
+    tenant.google_token_expiry = datetime.now(timezone.utc) + timedelta(seconds=data.get("expires_in", 3600))
     db.commit()
     logger.info("Refreshed Google access token for tenant %s", tenant.id)
     return tenant.google_access_token
 
 
 async def get_accounts(access_token: str) -> list:
-    """Fetch all Google My Business accounts for this user."""
     async with httpx.AsyncClient() as client:
         res = await client.get(
             f"{GMB_BASE}/accounts",
-            headers={"Authorization": f"Bearer {access_token}"}
+            headers={"Authorization": f"Bearer {access_token}"},
         )
     data = res.json()
     if "error" in data:
@@ -53,12 +58,11 @@ async def get_accounts(access_token: str) -> list:
 
 
 async def get_locations(access_token: str, account_id: str) -> list:
-    """Fetch all locations for a given GMB account."""
     async with httpx.AsyncClient() as client:
         res = await client.get(
             f"{GMB_BASE}/{account_id}/locations",
             headers={"Authorization": f"Bearer {access_token}"},
-            params={"readMask": "name,title,storefrontAddress"}
+            params={"readMask": "name,title,storefrontAddress"},
         )
     data = res.json()
     if "error" in data:
@@ -67,12 +71,11 @@ async def get_locations(access_token: str, account_id: str) -> list:
 
 
 async def get_reviews(access_token: str, account_id: str, location_id: str) -> list:
-    """Fetch all reviews for a given location."""
     async with httpx.AsyncClient() as client:
         res = await client.get(
             f"{REVIEWS_BASE}/{account_id}/{location_id}/reviews",
             headers={"Authorization": f"Bearer {access_token}"},
-            params={"pageSize": 50}
+            params={"pageSize": 50},
         )
     data = res.json()
     if "error" in data:
@@ -81,15 +84,14 @@ async def get_reviews(access_token: str, account_id: str, location_id: str) -> l
 
 
 async def post_reply(access_token: str, account_id: str, location_id: str, review_id: str, reply_text: str) -> dict:
-    """Post a reply to a Google review."""
     async with httpx.AsyncClient() as client:
         res = await client.put(
             f"{REVIEWS_BASE}/{account_id}/{location_id}/reviews/{review_id}/reply",
             headers={
                 "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
-            json={"comment": reply_text}
+            json={"comment": reply_text},
         )
     data = res.json()
     if "error" in data:

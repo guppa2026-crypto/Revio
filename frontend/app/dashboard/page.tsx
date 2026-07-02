@@ -222,8 +222,9 @@ export default function DashboardPage() {
     .sidebar-nav { flex: 1; padding: 4px 10px; display: flex; flex-direction: column; gap: 2px; }
     .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.5); cursor: pointer; border: none; background: none; font-family: inherit; text-decoration: none; transition: background 0.15s, color 0.15s; width: 100%; text-align: left; }
     .nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
-    .nav-item.active { background: rgba(225,14,28,0.18); color: #F5A6AC; }
-    .nav-item.active svg { color: #F5A6AC; }
+    .nav-item.active { background: rgba(255,255,255,0.1); color: #fff; font-weight: 600; }
+    .nav-item.active svg { color: rgba(255,255,255,0.9); }
+    .nav-badge { margin-left: auto; background: #E10E1C; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px; min-width: 18px; text-align: center; line-height: 15px; flex-shrink: 0; }
     .nav-item svg { flex-shrink: 0; }
     .nav-section { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.22); padding: 16px 12px 6px; }
     .sidebar-bottom { padding: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
@@ -245,15 +246,19 @@ export default function DashboardPage() {
     /* CONTENT */
     .content { padding: 24px 28px; flex: 1; }
 
-    /* STATS STRIP */
-    .stats-strip { background: #fff; border: 1px solid #E5E3DC; border-radius: 14px; display: flex; margin-bottom: 20px; overflow: hidden; }
-    .metric { flex: 1; padding: 20px 24px; position: relative; }
-    .metric + .metric::before { content: ''; position: absolute; left: 0; top: 20%; height: 60%; width: 1px; background: #E5E3DC; }
-    .metric-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #A8A49C; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    /* STATS GRID */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .metric-card { background: #fff; border: 1px solid #E8E6E0; border-radius: 14px; padding: 20px 22px; }
+    .metric-card.metric-alert { border-color: #FECACA; background: #FFFBFB; }
+    .metric-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+    .mi-gray { background: #F5F4F1; color: #6B6963; }
+    .mi-amber { background: #FEF9EC; color: #D97706; }
+    .mi-red { background: #FEF2F2; color: #DC2626; }
+    .mi-green { background: #F0FDF4; color: #16A34A; }
+    .metric-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #A8A49C; margin-bottom: 8px; }
     .metric-value { font-size: 32px; font-weight: 700; color: #1A1916; letter-spacing: -0.03em; line-height: 1; }
-    .metric-value.purple { color: #E10E1C; }
-    .metric-value.amber { color: #B45309; }
-    .metric-sub { font-size: 12px; color: #B8B4AC; margin-top: 6px; }
+    .metric-card.metric-alert .metric-value { color: #DC2626; }
+    .metric-sub { font-size: 12px; color: #B8B4AC; margin-top: 5px; }
 
     /* PAYWALL */
     .paywall { background: #fff; border: 1px solid #E5E3DC; border-radius: 16px; padding: 5rem 2rem; text-align: center; }
@@ -327,6 +332,10 @@ export default function DashboardPage() {
     .empty-state h3 { font-size: 15px; font-weight: 600; color: #6B6963; margin-bottom: 6px; }
     .empty-state p { font-size: 13px; color: #B8B4AC; max-width: 300px; margin: 0 auto; line-height: 1.6; }
     .loading-state { text-align: center; padding: 4rem; color: #B8B4AC; font-size: 14px; }
+    @keyframes dash-spin { to { transform: rotate(360deg); } }
+    .loading-spinner { width: 28px; height: 28px; border: 2.5px solid #E8E6E0; border-top-color: #E10E1C; border-radius: 50%; animation: dash-spin 0.7s linear infinite; margin: 4rem auto; }
+    .empty-state-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #fff; background: #1A1916; border: none; border-radius: 9px; padding: 9px 18px; cursor: pointer; font-family: inherit; margin-top: 16px; transition: background 0.15s; }
+    .empty-state-btn:hover { background: #333; }
 
     /* MODAL */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(6px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
@@ -357,8 +366,7 @@ export default function DashboardPage() {
       .topbar, .content { padding-left: 16px; padding-right: 16px; }
       .nav-toggle { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid #E0DED7; background: #fff; cursor: pointer; color: #1A1916; margin-right: 10px; flex-shrink: 0; }
       .topbar-left { display: flex; align-items: center; }
-      .stats-strip { flex-direction: column; }
-      .metric + .metric::before { display: none; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
     }
   `
 
@@ -385,6 +393,7 @@ export default function DashboardPage() {
             <button className="nav-item active">
               <LayoutDashboard size={15} />
               Dashboard
+              {pendingCount > 0 && <span className="nav-badge">{pendingCount}</span>}
             </button>
             <button className="nav-item" onClick={() => { setMobileNavOpen(false); router.push('/billing') }}>
               <CreditCard size={15} />
@@ -401,7 +410,7 @@ export default function DashboardPage() {
             </button>
           </nav>
           <div className="sidebar-bottom">
-            <button className="nav-signout" onClick={() => { localStorage.removeItem('token'); router.push('/login') }}>
+            <button className="nav-signout" onClick={() => api.post('/auth/logout').finally(() => router.push('/login'))}>
               <LogOut size={15} />
               Sign out
             </button>
@@ -470,24 +479,30 @@ export default function DashboardPage() {
                 )}
 
                 {/* STATS */}
-                <div className="stats-strip">
-                  <div className="metric">
-                    <div className="metric-label"><Star size={11} /> Total reviews</div>
+                <div className="stats-grid">
+                  <div className="metric-card">
+                    <div className="metric-icon mi-gray"><Star size={16} /></div>
+                    <div className="metric-label">Total reviews</div>
                     <div className="metric-value">{reviews.length}</div>
                     <div className="metric-sub">all time</div>
                   </div>
-                  <div className="metric">
-                    <div className="metric-label"><Star size={11} /> Avg rating</div>
-                    <div className="metric-value purple">{avgRating || '—'}</div>
+                  <div className="metric-card">
+                    <div className="metric-icon mi-amber"><Star size={16} /></div>
+                    <div className="metric-label">Avg rating</div>
+                    <div className="metric-value">{avgRating || '—'}</div>
                     <div className="metric-sub">out of 5.0</div>
                   </div>
-                  <div className="metric">
-                    <div className="metric-label"><Clock size={11} /> Pending</div>
-                    <div className={`metric-value${pendingCount > 0 ? ' amber' : ''}`}>{pendingCount}</div>
+                  <div className={`metric-card${pendingCount > 0 ? ' metric-alert' : ''}`}>
+                    <div className={`metric-icon${pendingCount > 0 ? ' mi-red' : ' mi-gray'}`}>
+                      {pendingCount > 0 ? <AlertTriangle size={16} /> : <Clock size={16} />}
+                    </div>
+                    <div className="metric-label">Needs review</div>
+                    <div className="metric-value">{pendingCount}</div>
                     <div className="metric-sub">{pendingCount > 0 ? 'need approval' : 'all clear'}</div>
                   </div>
-                  <div className="metric">
-                    <div className="metric-label"><CheckCheck size={11} /> Auto-posted</div>
+                  <div className="metric-card">
+                    <div className="metric-icon mi-green"><CheckCheck size={16} /></div>
+                    <div className="metric-label">Auto-posted</div>
                     <div className="metric-value">{postedCount}</div>
                     <div className="metric-sub">replies live</div>
                   </div>
@@ -508,11 +523,16 @@ export default function DashboardPage() {
                 </div>
 
                 {/* REVIEWS */}
-                {loading && <div className="loading-state">Loading reviews…</div>}
+                {loading && <div className="loading-spinner" />}
                 {!loading && filtered.length === 0 && (
                   <div className="empty-state">
-                    <h3>No reviews here</h3>
-                    <p>Connect your Google Business Profile or add a review manually to get started.</p>
+                    <h3>{filter === 'all' ? 'No reviews yet' : `No ${filter} reviews`}</h3>
+                    <p>{filter === 'all' ? 'Connect your Google Business Profile or add a review manually to get started.' : `You have no reviews with "${filter}" status right now.`}</p>
+                    {filter === 'all' && (
+                      <button className="empty-state-btn" onClick={handleGoogleConnect}>
+                        Connect Google Business →
+                      </button>
+                    )}
                   </div>
                 )}
                 {!loading && (
