@@ -1,7 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Star, Clock, CheckCheck, CreditCard, Settings, LogOut, Plus, AlertTriangle, LayoutDashboard, RefreshCw, X, Menu } from 'lucide-react'
+import {
+  Star, Clock, CreditCard, Settings, LogOut, Plus,
+  AlertTriangle, LayoutDashboard, RefreshCw, X, Menu, Search, TrendingUp,
+} from 'lucide-react'
 import api from '@/lib/api'
 import RatingGoal from '@/components/RatingGoal'
 
@@ -59,13 +62,24 @@ const RISK_BORDER: Record<string, string> = {
 }
 
 const STATUS_PILL: Record<string, { bg: string; color: string; label: string }> = {
-  pending:   { bg: '#FEF3C7', color: '#92400E', label: 'Pending' },
-  scheduled: { bg: '#EDE9FE', color: '#5B21B6', label: 'Scheduled' },
-  approved:  { bg: '#DCFCE7', color: '#166534', label: 'Approved' },
-  posted:    { bg: '#DBEAFE', color: '#1E40AF', label: 'Posted' },
-  rejected:  { bg: '#F1F5F9', color: '#475569', label: 'Rejected' },
-  flagged:   { bg: '#FEE2E2', color: '#991B1B', label: 'Flagged' },
+  pending:    { bg: '#FEF3C7', color: '#92400E', label: 'Pending' },
+  scheduled:  { bg: '#EDE9FE', color: '#5B21B6', label: 'Scheduled' },
+  approved:   { bg: '#DCFCE7', color: '#166534', label: 'Approved' },
+  posted:     { bg: '#DBEAFE', color: '#1E40AF', label: 'Posted' },
+  rejected:   { bg: '#F1F5F9', color: '#475569', label: 'Rejected' },
+  flagged:    { bg: '#FEE2E2', color: '#991B1B', label: 'Flagged' },
+  processing: { bg: '#EEF2FF', color: '#3730A3', label: 'Processing' },
 }
+
+const FILTERS = ['all', 'needs-action', 'scheduled', 'archive']
+const FILTER_LABELS: Record<string, string> = {
+  'all': 'All',
+  'needs-action': 'Needs action',
+  'scheduled': 'Scheduled',
+  'archive': 'Archive',
+}
+
+const PAGE_SIZE = 20
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -73,6 +87,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [locked, setLocked] = useState(false)
   const [filter, setFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE)
   const [editing, setEditing] = useState<Record<string, string>>({})
   const [approving, setApproving] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState<string | null>(null)
@@ -98,15 +114,7 @@ export default function DashboardPage() {
   const [importLoading, setImportLoading] = useState(false)
   const [importError, setImportError] = useState('')
 
-  useEffect(() => {
-    fetchReviews()
-    if (typeof window !== 'undefined' && window.location.search.includes('google=connected')) {
-      setShowLocationPicker(true)
-      loadAccounts()
-    }
-  }, [])
-
-  const fetchReviews = async (showRefresh = false) => {
+  const fetchReviews = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true)
     try {
       const res = await api.get('/reviews/')
@@ -117,7 +125,31 @@ export default function DashboardPage() {
       setLoading(false)
       setRefreshing(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchReviews()
+    if (typeof window !== 'undefined' && window.location.search.includes('google=connected')) {
+      setShowLocationPicker(true)
+      loadAccounts()
+    }
+  }, [fetchReviews])
+
+  // Silent background refresh every 60s so new Google reviews appear automatically
+  useEffect(() => {
+    const id = setInterval(() => fetchReviews(), 60000)
+    return () => clearInterval(id)
+  }, [fetchReviews])
+
+  // Fast poll every 3s while any review is still being AI-processed
+  useEffect(() => {
+    if (!reviews.some(r => r.status === 'processing')) return
+    const id = setInterval(() => fetchReviews(), 3000)
+    return () => clearInterval(id)
+  }, [reviews, fetchReviews])
+
+  // Reset pagination when filter or search changes
+  useEffect(() => { setDisplayCount(PAGE_SIZE) }, [filter, searchQuery])
 
   const loadAccounts = async () => {
     setAccountsError('')
@@ -178,9 +210,7 @@ export default function DashboardPage() {
       const res = await api.post('/reviews/' + id + '/regenerate')
       setReviews(prev => prev.map(r => r.id === id ? { ...r, generated_reply: res.data.generated_reply } : r))
       setEditing(e => { const n = { ...e }; delete n[id]; return n })
-    } finally {
-      setRegenerating(null)
-    }
+    } finally { setRegenerating(null) }
   }
 
   const handleGoogleConnect = async () => {
@@ -201,10 +231,32 @@ export default function DashboardPage() {
     } finally { setImportLoading(false) }
   }
 
-  const filtered = filter === 'all' ? reviews : reviews.filter((r: Review) => r.status === filter)
-  const avgRating = reviews.length ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10 : 0
-  const pendingCount = reviews.filter(r => r.status === 'pending').length
-  const postedCount = reviews.filter(r => r.status === 'posted').length
+  // Derived stats
+  const avgRating = reviews.length
+    ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+    : 0
+  const needsActionCount = reviews.filter(r => r.status === 'pending' || r.status === 'flagged').length
+  const scheduledCount = reviews.filter(r => r.status === 'scheduled').length
+  const thisWeek = reviews.filter(r => Date.now() - new Date(r.created_at).getTime() < 7 * 86400000).length
+  const responseRate = reviews.length
+    ? Math.round((reviews.filter(r => ['posted', 'approved', 'scheduled'].includes(r.status)).length / reviews.length) * 100)
+    : 0
+
+  // Filtered + searched list
+  const filtered = reviews
+    .filter(r => {
+      if (filter === 'needs-action') return r.status === 'pending' || r.status === 'flagged'
+      if (filter === 'archive') return ['approved', 'posted', 'rejected'].includes(r.status)
+      if (filter === 'scheduled') return r.status === 'scheduled'
+      return true
+    })
+    .filter(r => {
+      if (!searchQuery) return true
+      const q = searchQuery.toLowerCase()
+      return r.reviewer_name.toLowerCase().includes(q) || (r.review_text || '').toLowerCase().includes(q)
+    })
+
+  const displayed = filtered.slice(0, displayCount)
 
   const css = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -236,6 +288,7 @@ export default function DashboardPage() {
 
     /* TOPBAR */
     .topbar { background: #F5F4F1; border-bottom: 1px solid #E5E3DC; padding: 0 28px; height: 58px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .topbar-left { display: flex; align-items: center; }
     .topbar-title { font-size: 16px; font-weight: 700; color: #1A1916; letter-spacing: -0.01em; }
     .topbar-actions { display: flex; align-items: center; gap: 8px; }
     .btn-ghost { font-size: 13px; font-weight: 500; color: #6B6963; border: 1px solid #E0DED7; background: #fff; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: border-color 0.15s, color 0.15s; }
@@ -251,14 +304,16 @@ export default function DashboardPage() {
     .metric-card { background: #fff; border: 1px solid #E8E6E0; border-radius: 14px; padding: 20px 22px; }
     .metric-card.metric-alert { border-color: #FECACA; background: #FFFBFB; }
     .metric-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
-    .mi-gray { background: #F5F4F1; color: #6B6963; }
+    .mi-gray  { background: #F5F4F1; color: #6B6963; }
     .mi-amber { background: #FEF9EC; color: #D97706; }
-    .mi-red { background: #FEF2F2; color: #DC2626; }
+    .mi-red   { background: #FEF2F2; color: #DC2626; }
     .mi-green { background: #F0FDF4; color: #16A34A; }
+    .mi-blue  { background: #EFF6FF; color: #2563EB; }
     .metric-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #A8A49C; margin-bottom: 8px; }
-    .metric-value { font-size: 32px; font-weight: 700; color: #1A1916; letter-spacing: -0.03em; line-height: 1; }
+    .metric-value { font-size: 30px; font-weight: 700; color: #1A1916; letter-spacing: -0.03em; line-height: 1; }
     .metric-card.metric-alert .metric-value { color: #DC2626; }
     .metric-sub { font-size: 12px; color: #B8B4AC; margin-top: 5px; }
+    .metric-sub-up { font-size: 12px; color: #16A34A; margin-top: 5px; font-weight: 500; }
 
     /* PAYWALL */
     .paywall { background: #fff; border: 1px solid #E5E3DC; border-radius: 16px; padding: 5rem 2rem; text-align: center; }
@@ -278,10 +333,18 @@ export default function DashboardPage() {
     .btn-save-loc:disabled { opacity: 0.45; cursor: not-allowed; }
     .loc-saved { font-size: 13px; font-weight: 600; color: #166534; }
 
-    /* FILTER TABS */
-    .filter-tabs { display: flex; gap: 2px; background: #ECEAE4; border-radius: 10px; padding: 3px; width: fit-content; margin-bottom: 16px; }
+    /* SEARCH + FILTER ROW */
+    .search-filter-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-wrap { position: relative; flex: 1; min-width: 180px; max-width: 300px; }
+    .search-icon-abs { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #A8A49C; pointer-events: none; }
+    .search-input { width: 100%; font-size: 13px; color: #1A1916; background: #fff; border: 1px solid #E0DED7; border-radius: 9px; padding: 7px 12px 7px 34px; font-family: inherit; outline: none; transition: border-color 0.15s; }
+    .search-input::placeholder { color: #B8B4AC; }
+    .search-input:focus { border-color: #1A1916; }
+    .filter-tabs { display: flex; gap: 2px; background: #ECEAE4; border-radius: 10px; padding: 3px; }
     .filter-tab { font-size: 12.5px; font-weight: 500; padding: 6px 14px; border-radius: 8px; border: none; background: transparent; color: #8A8780; cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
     .filter-tab.active { background: #fff; color: #1A1916; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .filter-tab-badge { display: inline-flex; align-items: center; justify-content: center; background: #E10E1C; color: #fff; font-size: 10px; font-weight: 700; border-radius: 99px; min-width: 16px; height: 16px; padding: 0 5px; margin-left: 5px; line-height: 1; }
+    .filter-tab.active .filter-tab-badge { background: #E10E1C; }
 
     /* REVIEWS */
     .reviews-list { display: flex; flex-direction: column; gap: 8px; }
@@ -327,6 +390,21 @@ export default function DashboardPage() {
     .btn-reject { font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: 8px; cursor: pointer; border: 1px solid #FECACA; background: #fff; color: #DC2626; font-family: inherit; }
     .btn-reject:hover { background: #FEF2F2; }
 
+    /* PROCESSING */
+    .processing-notice { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #F8F8FF; border: 1px dashed #C7D2FE; border-radius: 10px; font-size: 13px; color: #4338CA; font-weight: 500; }
+    .processing-dots { display: flex; gap: 4px; }
+    .processing-dot { width: 5px; height: 5px; border-radius: 50%; background: #6366F1; }
+    .processing-dot:nth-child(1) { animation: pdot 1.2s 0.0s ease-in-out infinite; }
+    .processing-dot:nth-child(2) { animation: pdot 1.2s 0.2s ease-in-out infinite; }
+    .processing-dot:nth-child(3) { animation: pdot 1.2s 0.4s ease-in-out infinite; }
+    @keyframes pdot { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.1); } }
+
+    /* LOAD MORE */
+    .load-more-row { display: flex; justify-content: center; padding: 20px 0 4px; }
+    .btn-load-more { font-size: 13px; font-weight: 500; color: #6B6963; border: 1px solid #E0DED7; background: #fff; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-family: inherit; transition: border-color 0.15s, color 0.15s; }
+    .btn-load-more:hover { border-color: #1A1916; color: #1A1916; }
+    .results-count { font-size: 12px; color: #B8B4AC; margin-bottom: 12px; }
+
     /* EMPTY */
     .empty-state { background: #fff; border: 1px solid #E5E3DC; border-radius: 14px; padding: 5rem 2rem; text-align: center; }
     .empty-state h3 { font-size: 15px; font-weight: 600; color: #6B6963; margin-bottom: 6px; }
@@ -365,13 +443,12 @@ export default function DashboardPage() {
       .main { margin-left: 0; }
       .topbar, .content { padding-left: 16px; padding-right: 16px; }
       .nav-toggle { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid #E0DED7; background: #fff; cursor: pointer; color: #1A1916; margin-right: 10px; flex-shrink: 0; }
-      .topbar-left { display: flex; align-items: center; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .search-filter-row { flex-direction: column; align-items: stretch; }
+      .search-wrap { max-width: 100%; }
+      .filter-tabs { overflow-x: auto; }
     }
   `
-
-  const scheduledCount = reviews.filter(r => r.status === 'scheduled').length
-  const FILTERS = ['all', 'pending', 'scheduled', 'flagged', 'approved', 'posted']
 
   return (
     <>
@@ -393,7 +470,7 @@ export default function DashboardPage() {
             <button className="nav-item active">
               <LayoutDashboard size={15} />
               Dashboard
-              {pendingCount > 0 && <span className="nav-badge">{pendingCount}</span>}
+              {needsActionCount > 0 && <span className="nav-badge">{needsActionCount}</span>}
             </button>
             <button className="nav-item" onClick={() => { setMobileNavOpen(false); router.push('/billing') }}>
               <CreditCard size={15} />
@@ -402,11 +479,6 @@ export default function DashboardPage() {
             <button className="nav-item" onClick={() => { setMobileNavOpen(false); router.push('/settings') }}>
               <Settings size={15} />
               Settings
-            </button>
-            <span className="nav-section">Google</span>
-            <button className="nav-item" onClick={() => { setMobileNavOpen(false); handleGoogleConnect() }}>
-              <RefreshCw size={15} />
-              Connect Google
             </button>
           </nav>
           <div className="sidebar-bottom">
@@ -428,7 +500,7 @@ export default function DashboardPage() {
             </div>
             <div className="topbar-actions">
               <button className="btn-ghost" onClick={() => fetchReviews(true)}>
-                <RefreshCw size={13} className={refreshing ? 'spinning' : ''} />
+                <RefreshCw size={13} className={refreshing ? 'spin' : ''} />
                 Refresh
               </button>
               <button className="btn-primary" onClick={() => setShowImport(true)}>
@@ -442,7 +514,7 @@ export default function DashboardPage() {
             {locked ? (
               <div className="paywall">
                 <h2>Upgrade to Pro</h2>
-                <p>Subscribe for £12.99/month to unlock review management, AI replies, and your rating goal tracker.</p>
+                <p>Subscribe to unlock review management, AI-generated replies, and your live rating goal tracker.</p>
                 <button className="paywall-btn" onClick={() => router.push('/billing')}>View plans</button>
               </div>
             ) : (
@@ -484,7 +556,9 @@ export default function DashboardPage() {
                     <div className="metric-icon mi-gray"><Star size={16} /></div>
                     <div className="metric-label">Total reviews</div>
                     <div className="metric-value">{reviews.length}</div>
-                    <div className="metric-sub">all time</div>
+                    {thisWeek > 0
+                      ? <div className="metric-sub-up">↑ {thisWeek} this week</div>
+                      : <div className="metric-sub">all time</div>}
                   </div>
                   <div className="metric-card">
                     <div className="metric-icon mi-amber"><Star size={16} /></div>
@@ -492,156 +566,210 @@ export default function DashboardPage() {
                     <div className="metric-value">{avgRating || '—'}</div>
                     <div className="metric-sub">out of 5.0</div>
                   </div>
-                  <div className={`metric-card${pendingCount > 0 ? ' metric-alert' : ''}`}>
-                    <div className={`metric-icon${pendingCount > 0 ? ' mi-red' : ' mi-gray'}`}>
-                      {pendingCount > 0 ? <AlertTriangle size={16} /> : <Clock size={16} />}
+                  <div className={`metric-card${needsActionCount > 0 ? ' metric-alert' : ''}`}>
+                    <div className={`metric-icon${needsActionCount > 0 ? ' mi-red' : ' mi-gray'}`}>
+                      {needsActionCount > 0 ? <AlertTriangle size={16} /> : <Clock size={16} />}
                     </div>
-                    <div className="metric-label">Needs review</div>
-                    <div className="metric-value">{pendingCount}</div>
-                    <div className="metric-sub">{pendingCount > 0 ? 'need approval' : 'all clear'}</div>
+                    <div className="metric-label">Needs action</div>
+                    <div className="metric-value">{needsActionCount}</div>
+                    <div className="metric-sub">{needsActionCount > 0 ? 'pending or flagged' : 'all clear'}</div>
                   </div>
                   <div className="metric-card">
-                    <div className="metric-icon mi-green"><CheckCheck size={16} /></div>
-                    <div className="metric-label">Auto-posted</div>
-                    <div className="metric-value">{postedCount}</div>
-                    <div className="metric-sub">replies live</div>
+                    <div className="metric-icon mi-blue"><TrendingUp size={16} /></div>
+                    <div className="metric-label">Response rate</div>
+                    <div className="metric-value">{reviews.length ? `${responseRate}%` : '—'}</div>
+                    <div className="metric-sub">replied or scheduled</div>
                   </div>
                 </div>
 
                 {/* RATING GOAL */}
                 <RatingGoal rating={avgRating} count={reviews.length} />
 
-                {/* FILTER TABS */}
-                <div className="filter-tabs">
-                  {FILTERS.map(f => (
-                    <button key={f} className={`filter-tab${filter === f ? ' active' : ''}`} onClick={() => setFilter(f)}>
-                      {f.charAt(0).toUpperCase() + f.slice(1)}
-                      {f === 'pending' && pendingCount > 0 && ` (${pendingCount})`}
-                      {f === 'scheduled' && scheduledCount > 0 && ` (${scheduledCount})`}
-                    </button>
-                  ))}
+                {/* SEARCH + FILTER */}
+                <div className="search-filter-row">
+                  <div className="search-wrap">
+                    <Search size={14} className="search-icon-abs" />
+                    <input
+                      className="search-input"
+                      type="text"
+                      placeholder="Search by name or review…"
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <div className="filter-tabs">
+                    {FILTERS.map(f => (
+                      <button key={f} className={`filter-tab${filter === f ? ' active' : ''}`} onClick={() => setFilter(f)}>
+                        {FILTER_LABELS[f]}
+                        {f === 'needs-action' && needsActionCount > 0 && (
+                          <span className="filter-tab-badge">{needsActionCount}</span>
+                        )}
+                        {f === 'scheduled' && scheduledCount > 0 && (
+                          <span className="filter-tab-badge">{scheduledCount}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {/* RESULT COUNT */}
+                {searchQuery && !loading && (
+                  <div className="results-count">
+                    {filtered.length === 0 ? 'No reviews match your search' : `${filtered.length} review${filtered.length !== 1 ? 's' : ''} found`}
+                  </div>
+                )}
 
                 {/* REVIEWS */}
                 {loading && <div className="loading-spinner" />}
                 {!loading && filtered.length === 0 && (
                   <div className="empty-state">
-                    <h3>{filter === 'all' ? 'No reviews yet' : `No ${filter} reviews`}</h3>
-                    <p>{filter === 'all' ? 'Connect your Google Business Profile or add a review manually to get started.' : `You have no reviews with "${filter}" status right now.`}</p>
-                    {filter === 'all' && (
+                    <h3>{searchQuery ? 'No results' : filter === 'all' ? 'No reviews yet' : `No ${FILTER_LABELS[filter].toLowerCase()} reviews`}</h3>
+                    <p>
+                      {searchQuery
+                        ? `No reviews match "${searchQuery}". Try a different search term.`
+                        : filter === 'all'
+                        ? 'Connect your Google Business Profile or add a review manually to get started.'
+                        : `You have no reviews in this category right now.`}
+                    </p>
+                    {filter === 'all' && !searchQuery && (
                       <button className="empty-state-btn" onClick={handleGoogleConnect}>
                         Connect Google Business →
                       </button>
                     )}
                   </div>
                 )}
-                {!loading && (
-                  <div className="reviews-list">
-                    {filtered.map((review: Review) => {
-                      const av = avatarColor(review.reviewer_name)
-                      const isEditing = editing[review.id] !== undefined
-                      const replyText = isEditing ? editing[review.id] : review.generated_reply
-                      const statusPill = STATUS_PILL[review.status]
-                      return (
-                        <div key={review.id} className="review-card">
-                          <div className="review-risk-bar" style={{ background: RISK_BORDER[review.risk_level] || '#E5E3DC' }} />
-                          <div className="review-body">
-                            <div className="review-header">
-                              <div className="reviewer-info">
-                                <div className="avatar" style={{ background: av.bg, color: av.color }}>
-                                  {initials(review.reviewer_name)}
+                {!loading && filtered.length > 0 && (
+                  <>
+                    <div className="reviews-list">
+                      {displayed.map((review: Review) => {
+                        const av = avatarColor(review.reviewer_name)
+                        const isEditing = editing[review.id] !== undefined
+                        const replyText = isEditing ? editing[review.id] : review.generated_reply
+                        const statusPill = STATUS_PILL[review.status]
+
+                        return (
+                          <div key={review.id} className="review-card">
+                            <div className="review-risk-bar" style={{ background: RISK_BORDER[review.risk_level] || '#E5E3DC' }} />
+                            <div className="review-body">
+                              <div className="review-header">
+                                <div className="reviewer-info">
+                                  <div className="avatar" style={{ background: av.bg, color: av.color }}>
+                                    {initials(review.reviewer_name)}
+                                  </div>
+                                  <div>
+                                    <div className="reviewer-name">{review.reviewer_name}</div>
+                                    <div className="reviewer-meta">
+                                      <span className="stars-row">
+                                        {[1,2,3,4,5].map(n => (
+                                          <Star key={n} size={11} fill={n <= review.rating ? '#F59E0B' : 'none'} className={n <= review.rating ? 'star-filled' : 'star-empty'} />
+                                        ))}
+                                      </span>
+                                      <span className="review-meta-sep">·</span>
+                                      <span>{review.created_at ? timeAgo(review.created_at) : ''}</span>
+                                      <span className="review-meta-sep">·</span>
+                                      <span>Google</span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <div className="reviewer-name">{review.reviewer_name}</div>
-                                  <div className="reviewer-meta">
-                                    <span className="stars-row">
-                                      {[1,2,3,4,5].map(n => (
-                                        <Star key={n} size={11} fill={n <= review.rating ? '#F59E0B' : 'none'} className={n <= review.rating ? 'star-filled' : 'star-empty'} />
-                                      ))}
+                                <div className="review-badges">
+                                  {statusPill && (
+                                    <span className="pill" style={{ background: statusPill.bg, color: statusPill.color }}>
+                                      {statusPill.label}
                                     </span>
-                                    <span className="review-meta-sep">·</span>
-                                    <span>{review.created_at ? timeAgo(review.created_at) : ''}</span>
-                                    <span className="review-meta-sep">·</span>
-                                    <span>Google</span>
-                                  </div>
+                                  )}
                                 </div>
                               </div>
-                              <div className="review-badges">
-                                {statusPill && (
-                                  <span className="pill" style={{ background: statusPill.bg, color: statusPill.color }}>
-                                    {statusPill.label}
-                                  </span>
-                                )}
-                              </div>
+
+                              <p className="review-text">{review.review_text}</p>
+
+                              {/* PROCESSING STATE */}
+                              {review.status === 'processing' && (
+                                <div className="processing-notice">
+                                  <div className="processing-dots">
+                                    <div className="processing-dot" />
+                                    <div className="processing-dot" />
+                                    <div className="processing-dot" />
+                                  </div>
+                                  Generating AI reply…
+                                </div>
+                              )}
+
+                              {review.status === 'scheduled' && review.reply_at && (
+                                <div className="scheduled-notice">
+                                  <span><Clock size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />Auto-replying in {timeUntil(review.reply_at)} — will post to Google automatically</span>
+                                  <button className="btn-cancel-schedule" onClick={() => handleCancelSchedule(review.id)}>Cancel</button>
+                                </div>
+                              )}
+
+                              {review.status === 'flagged' && (
+                                <div className="flagged-notice">
+                                  <AlertTriangle size={15} />
+                                  High risk — review the draft carefully and edit before posting. You have also been emailed.
+                                </div>
+                              )}
+
+                              {replyText && review.status !== 'processing' ? (
+                                <div className="reply-section">
+                                  <div className="reply-header">
+                                    <span className="reply-tag">AI Draft</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                      {(review.status === 'pending' || review.status === 'scheduled' || review.status === 'flagged') && (
+                                        <button className="reply-edit-btn" onClick={() => isEditing
+                                          ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
+                                          : setEditing(e => ({ ...e, [review.id]: review.generated_reply }))
+                                        }>{isEditing ? 'Cancel edit' : 'Edit'}</button>
+                                      )}
+                                      <button
+                                        className="reply-regen-btn"
+                                        disabled={regenerating === review.id}
+                                        onClick={() => handleRegenerate(review.id)}
+                                      >
+                                        <RefreshCw size={11} className={regenerating === review.id ? 'spin' : ''} />
+                                        {regenerating === review.id ? 'Regenerating…' : 'Regenerate'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {isEditing
+                                    ? <textarea className="reply-textarea" value={editing[review.id]} onChange={e => setEditing(ed => ({ ...ed, [review.id]: e.target.value }))} />
+                                    : <p className="reply-text">{replyText}</p>
+                                  }
+                                </div>
+                              ) : null}
+
+                              {(review.status === 'pending' || review.status === 'flagged') && (
+                                <div className="review-actions">
+                                  <button className="btn-approve" disabled={approving === review.id} onClick={() => handleApprove(review.id)}>
+                                    {approving === review.id ? 'Posting…' : 'Approve & post'}
+                                  </button>
+                                  {!isEditing && (
+                                    <button className="btn-edit-reply" onClick={() => setEditing(e => ({ ...e, [review.id]: review.generated_reply }))}>Edit reply</button>
+                                  )}
+                                  <button className="btn-reject" onClick={() => handleReject(review.id)}>Reject</button>
+                                </div>
+                              )}
+                              {review.status === 'scheduled' && isEditing && (
+                                <div className="review-actions">
+                                  <button className="btn-approve" disabled={approving === review.id} onClick={() => handleApprove(review.id)}>
+                                    {approving === review.id ? 'Posting…' : 'Post now instead'}
+                                  </button>
+                                  <button className="btn-edit-reply" onClick={() => setEditing(e => { const n = { ...e }; delete n[review.id]; return n })}>Cancel edit</button>
+                                </div>
+                              )}
                             </div>
-
-                            <p className="review-text">{review.review_text}</p>
-
-                            {review.status === 'scheduled' && review.reply_at && (
-                              <div className="scheduled-notice">
-                                <span><Clock size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />Auto-replying in {timeUntil(review.reply_at)} — will post to Google automatically</span>
-                                <button className="btn-cancel-schedule" onClick={() => handleCancelSchedule(review.id)}>Cancel</button>
-                              </div>
-                            )}
-
-                            {review.status === 'flagged' && (
-                              <div className="flagged-notice">
-                                <AlertTriangle size={15} />
-                                High risk — review the draft carefully and edit before posting. You have also been emailed.
-                              </div>
-                            )}
-                            {replyText ? (
-                              <div className="reply-section">
-                                <div className="reply-header">
-                                  <span className="reply-tag">AI Draft</span>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                    {(review.status === 'pending' || review.status === 'scheduled' || review.status === 'flagged') && (
-                                      <button className="reply-edit-btn" onClick={() => isEditing
-                                        ? setEditing(e => { const n = { ...e }; delete n[review.id]; return n })
-                                        : setEditing(e => ({ ...e, [review.id]: review.generated_reply }))
-                                      }>{isEditing ? 'Cancel edit' : 'Edit'}</button>
-                                    )}
-                                    <button
-                                      className="reply-regen-btn"
-                                      disabled={regenerating === review.id}
-                                      onClick={() => handleRegenerate(review.id)}
-                                    >
-                                      <RefreshCw size={11} className={regenerating === review.id ? 'spin' : ''} />
-                                      {regenerating === review.id ? 'Regenerating…' : 'Regenerate'}
-                                    </button>
-                                  </div>
-                                </div>
-                                {isEditing
-                                  ? <textarea className="reply-textarea" value={editing[review.id]} onChange={e => setEditing(ed => ({ ...ed, [review.id]: e.target.value }))} />
-                                  : <p className="reply-text">{replyText}</p>
-                                }
-                              </div>
-                            ) : null}
-
-                            {(review.status === 'pending' || review.status === 'flagged') && (
-                              <div className="review-actions">
-                                <button className="btn-approve" disabled={approving === review.id} onClick={() => handleApprove(review.id)}>
-                                  {approving === review.id ? 'Posting…' : 'Approve & post'}
-                                </button>
-                                {!isEditing && (
-                                  <button className="btn-edit-reply" onClick={() => setEditing(e => ({ ...e, [review.id]: review.generated_reply }))}>Edit reply</button>
-                                )}
-                                <button className="btn-reject" onClick={() => handleReject(review.id)}>Reject</button>
-                              </div>
-                            )}
-                            {review.status === 'scheduled' && isEditing && (
-                              <div className="review-actions">
-                                <button className="btn-approve" disabled={approving === review.id} onClick={() => handleApprove(review.id)}>
-                                  {approving === review.id ? 'Posting…' : 'Post now instead'}
-                                </button>
-                                <button className="btn-edit-reply" onClick={() => setEditing(e => { const n = { ...e }; delete n[review.id]; return n })}>Cancel edit</button>
-                              </div>
-                            )}
                           </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* LOAD MORE */}
+                    {displayCount < filtered.length && (
+                      <div className="load-more-row">
+                        <button className="btn-load-more" onClick={() => setDisplayCount(c => c + PAGE_SIZE)}>
+                          Load more · {filtered.length - displayCount} remaining
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
