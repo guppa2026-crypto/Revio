@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, CreditCard, Settings, RefreshCw, LogOut, Menu } from 'lucide-react'
+import { LayoutDashboard, CreditCard, Settings, LogOut, Menu } from 'lucide-react'
 import api from '@/lib/api'
 
 const TONE_PRESETS = [
@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const [pwLoading, setPwLoading] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [disconnected, setDisconnected] = useState(false)
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(null)
   const [toneInstructions, setToneInstructions] = useState('')
   const [toneSaving, setToneSaving] = useState(false)
   const [toneSuccess, setToneSuccess] = useState('')
@@ -28,6 +29,9 @@ export default function SettingsPage() {
 
   useEffect(() => {
     api.get('/settings').then(res => setToneInstructions(res.data.tone_instructions || '')).catch(() => {})
+    api.get('/google/accounts')
+      .then(() => setGoogleConnected(true))
+      .catch(() => setGoogleConnected(false))
   }, [])
 
   const handleSaveTone = async (e: React.FormEvent) => {
@@ -191,11 +195,6 @@ export default function SettingsPage() {
               <Settings size={15} />
               Settings
             </button>
-            <span className="st-nav-section">Google</span>
-            <button className="st-nav-item" onClick={() => { setMobileNavOpen(false); handleGoogleConnect() }}>
-              <RefreshCw size={15} />
-              Connect Google
-            </button>
           </nav>
           <div className="st-sidebar-bottom">
             <button className="st-signout" onClick={() => api.post('/auth/logout').finally(() => router.push('/login'))}>
@@ -239,9 +238,13 @@ export default function SettingsPage() {
             <div className="st-card">
               <div className="st-card-title">Google Business Profile</div>
               <div className="st-card-sub">Manage your connected Google account. Disconnecting will stop review syncing.</div>
-              {disconnected ? (
+              {googleConnected === null ? (
                 <div className="st-badge st-badge-disconnected">
-                  <span className="st-badge-dot" /> Disconnected
+                  <span className="st-badge-dot" /> Checking…
+                </div>
+              ) : disconnected || !googleConnected ? (
+                <div className="st-badge st-badge-disconnected">
+                  <span className="st-badge-dot" /> Not connected
                 </div>
               ) : (
                 <div className="st-badge st-badge-connected">
@@ -249,13 +252,13 @@ export default function SettingsPage() {
                 </div>
               )}
               <div className="st-divider" />
-              {!disconnected ? (
+              {!disconnected && googleConnected ? (
                 <button className="st-btn st-btn-danger" onClick={handleDisconnectGoogle} disabled={disconnecting}>
                   {disconnecting ? 'Disconnecting…' : 'Disconnect Google'}
                 </button>
               ) : (
-                <button className="st-btn st-btn-primary" onClick={() => router.push('/dashboard')}>
-                  Reconnect from dashboard
+                <button className="st-btn st-btn-primary" onClick={handleGoogleConnect}>
+                  Connect Google Business Profile
                 </button>
               )}
             </div>

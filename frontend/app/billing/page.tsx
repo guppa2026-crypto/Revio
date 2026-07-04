@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, CreditCard, Settings, RefreshCw, LogOut, Menu, CheckCircle, ArrowRight } from 'lucide-react'
+import { LayoutDashboard, CreditCard, Settings, LogOut, Menu, CheckCircle, ArrowRight } from 'lucide-react'
 import api from '@/lib/api'
 import axios from 'axios'
 
@@ -88,15 +88,8 @@ export default function BillingPage() {
     }
   }
 
-  const handleGoogleConnect = async () => {
-    try {
-      const res = await api.get('/google/connect')
-      window.location.href = res.data.auth_url
-    } catch { alert('Failed to start Google connection.') }
-  }
-
   const formatDate = (ts: number) =>
-    new Date(ts * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    new Date(ts * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
 
   const css = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -201,11 +194,6 @@ export default function BillingPage() {
               <Settings size={15} />
               Settings
             </button>
-            <span className="bl-nav-section">Google</span>
-            <button className="bl-nav-item" onClick={() => { setMobileNavOpen(false); handleGoogleConnect() }}>
-              <RefreshCw size={15} />
-              Connect Google
-            </button>
           </nav>
           <div className="bl-sidebar-bottom">
             <button className="bl-signout" onClick={() => api.post('/auth/logout').finally(() => router.push('/login'))}>
@@ -265,7 +253,7 @@ export default function BillingPage() {
                   <div className="bl-divider" />
                   {!status?.is_subscribed ? (
                     <button className="bl-btn bl-btn-primary" disabled={subscribing} onClick={handleSubscribe}>
-                      {subscribing ? 'Redirecting to checkout…' : <>Subscribe for £12.99/month <ArrowRight size={15} /></>}
+                      {subscribing ? 'Redirecting to checkout…' : <>Start subscription <ArrowRight size={15} /></>}
                     </button>
                   ) : (
                     <button className="bl-btn bl-btn-cancel" disabled={cancelling} onClick={handleCancel}>
