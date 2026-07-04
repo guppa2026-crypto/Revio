@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from typing import Optional
 from uuid import UUID
@@ -11,7 +11,10 @@ from app.utils.dependencies import get_current_user
 from app.utils.limiter import limiter
 from app.services.review_processor import process_review
 from datetime import datetime, timezone
+import logging
 import uuid
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 
@@ -161,9 +164,24 @@ class ManualReviewInput(BaseModel):
         return v.strip() if isinstance(v, str) else v
 
 
+def _process_review_background(review_id: str, tenant_name: str, tone_instructions: str) -> None:
+    from uuid import UUID as PyUUID
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        review = db.query(Review).filter(Review.id == PyUUID(review_id)).first()
+        if review:
+            process_review(review, db, tenant_name, tone_instructions=tone_instructions)
+    except Exception:
+        logger.exception("Background review processing failed for %s", review_id)
+    finally:
+        db.close()
+
+
 @router.post("/import")
 def import_review(
     data: ManualReviewInput,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     tenant: Tenant = Depends(require_subscription),
@@ -175,12 +193,15 @@ def import_review(
         rating=data.rating,
         review_text=data.review_text,
         review_date=datetime.now(timezone.utc),
+        status="processing",
     )
     db.add(review)
-    db.flush()
-    try:
-        processed = process_review(review, db, tenant.name, tone_instructions=tenant.tone_instructions or "")
-    except Exception:
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to process review — please try again")
-    return processed
+    db.commit()
+    db.refresh(review)
+    background_tasks.add_task(
+        _process_review_background,
+        str(review.id),
+        tenant.name,
+        tenant.tone_instructions or "",
+    )
+    return review

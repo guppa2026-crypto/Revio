@@ -58,6 +58,10 @@ def _override_get_db():
 from app.main import app  # noqa: E402  (must come after env vars)
 app.dependency_overrides[get_db] = _override_get_db
 
+# Make background tasks in reviews.py use the same test session factory
+import app.database as _app_database
+_app_database.SessionLocal = _TestSession
+
 
 # ---------------------------------------------------------------------------
 # Core fixtures
@@ -82,6 +86,8 @@ def _mock_external_services():
         ),
         patch("app.services.review_processor.generate_reply", return_value="Thank you for your review!"),
         patch("app.routers.billing._mark_event_processed", return_value=True),
+        patch("app.utils.redis_client.get_redis", return_value=None),
+        patch("app.utils.dependencies.get_redis", return_value=None),
     ):
         yield
 

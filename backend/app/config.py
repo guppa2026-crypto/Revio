@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Admin access — comma-separated list of email addresses
     ADMIN_EMAILS: str = ""
 
+    # Sentry error monitoring (optional — leave blank to disable)
+    SENTRY_DSN: str = ""
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

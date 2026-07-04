@@ -1,4 +1,6 @@
+import hashlib
 import re
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -7,11 +9,12 @@ from app.models.user import User
 from app.models.tenant import Tenant
 from app.schemas.user import TenantCreate, UserLogin, Token
 from app.utils.security import (
-    hash_password, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES,
-    create_password_reset_token, decode_password_reset_token,
+    hash_password, verify_password, create_access_token, decode_access_token,
+    ACCESS_TOKEN_EXPIRE_MINUTES, create_password_reset_token, decode_password_reset_token,
 )
 from app.utils.dependencies import get_current_user
 from app.utils.limiter import limiter
+from app.utils.redis_client import get_redis
 from app.services.email_service import send_new_signup_notification, send_password_reset_email
 from app.config import settings
 
@@ -124,8 +127,21 @@ def login(request: Request, response: Response, data: UserLogin, db: Session = D
 
 
 @router.post("/logout")
-def logout(response: Response):
-    """Clear the auth cookie. The client should also discard any in-memory token."""
+def logout(request: Request, response: Response):
+    """Blacklist the current token and clear the auth cookie."""
+    token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+    if token:
+        payload = decode_access_token(token)
+        if payload:
+            r = get_redis()
+            if r:
+                remaining = int(payload.get("exp", 0) - datetime.now(timezone.utc).timestamp())
+                if remaining > 0:
+                    r.set(f"jwt_bl:{hashlib.sha256(token.encode()).hexdigest()}", "1", ex=remaining)
     response.delete_cookie(key="access_token", path="/", samesite="lax")
     return {"message": "Logged out"}
 

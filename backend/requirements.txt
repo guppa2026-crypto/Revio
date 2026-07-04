@@ -1,4 +1,5 @@
 alembic==1.18.4
+sentry-sdk[fastapi]==2.64.0
 apscheduler==3.10.4
 slowapi==0.1.9
 amqp==5.3.1

@@ -1,3 +1,4 @@
+import hashlib
 from typing import Optional
 from uuid import UUID as PyUUID
 from fastapi import Depends, HTTPException, Request, status
@@ -7,6 +8,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.tenant import Tenant
 from app.utils.security import decode_access_token
+from app.utils.redis_client import get_redis
 
 # auto_error=False so we can check the cookie first without FastAPI immediately rejecting
 security = HTTPBearer(auto_error=False)
@@ -35,6 +37,15 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
+
+    r = get_redis()
+    if r:
+        token_key = f"jwt_bl:{hashlib.sha256(token.encode()).hexdigest()}"
+        if r.exists(token_key):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+            )
 
     try:
         user_id = PyUUID(payload.get("sub", ""))

@@ -1,10 +1,10 @@
+import uuid as _uuid_mod
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from sqlalchemy import text
 from app.routers import auth, reviews, billing, admin, google
 from app.routers import settings as settings_router
 from app.utils.dependencies import get_current_user
@@ -13,27 +13,46 @@ from app.database import engine
 from app.tasks.scheduler import start_scheduler, stop_scheduler
 from app.config import settings
 
-
 import logging
 logger = logging.getLogger(__name__)
 
-def _migrate_db():
-    """Add any new columns that don't exist yet (safe to run on every startup)."""
+if settings.SENTRY_DSN:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=0.05,
+        send_default_pii=False,
+    )
+
+
+def _run_migrations():
+    """Run Alembic migrations on startup so the schema is always current."""
     try:
-        with engine.connect() as conn:
-            conn.execute(text("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS reply_at TIMESTAMP;"))
-            conn.execute(text("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tone_instructions TEXT;"))
-            conn.commit()
+        from alembic.config import Config
+        from alembic import command
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Alembic migrations applied successfully")
     except Exception as exc:
-        logger.warning("Migration step skipped (non-PostgreSQL env or column already exists): %s", exc)
+        logger.warning("Alembic migration skipped: %s", exc)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    _migrate_db()
+    _run_migrations()
     start_scheduler()
     yield
     stop_scheduler()
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Assign a unique ID to every request for log correlation."""
+    async def dispatch(self, request: Request, call_next) -> Response:
+        request_id = request.headers.get("X-Request-ID") or str(_uuid_mod.uuid4())
+        request.state.request_id = request_id
+        response: Response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -74,6 +93,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(RequestIDMiddleware)
 
 app.include_router(auth.router)
 app.include_router(reviews.router)

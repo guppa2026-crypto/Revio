@@ -97,7 +97,10 @@ def test_import_positive_review_scheduled(subscribed_client):
         json={"reviewer_name": "Jane", "rating": 5, "review_text": "Absolutely fantastic service!"},
     )
     assert res.status_code == 200
-    data = res.json()
+    review_id = res.json()["id"]
+    # Background task runs synchronously in TestClient — fetch final state
+    detail = subscribed_client.get(f"/reviews/{review_id}")
+    data = detail.json()
     assert data["status"] == "scheduled"
     assert data["generated_reply"] == "Thank you for your review!"
     assert data["reply_at"] is not None
@@ -115,7 +118,9 @@ def test_import_low_rating_pending(subscribed_client):
             json={"reviewer_name": "Dave", "rating": 3, "review_text": "It was okay."},
         )
     assert res.status_code == 200
-    assert res.json()["status"] == "pending"
+    review_id = res.json()["id"]
+    detail = subscribed_client.get(f"/reviews/{review_id}")
+    assert detail.json()["status"] == "pending"
 
 
 def test_import_high_risk_flagged(subscribed_client):
@@ -130,7 +135,9 @@ def test_import_high_risk_flagged(subscribed_client):
             json={"reviewer_name": "Angry", "rating": 1, "review_text": "I will sue you!"},
         )
     assert res.status_code == 200
-    assert res.json()["status"] == "flagged"
+    review_id = res.json()["id"]
+    detail = subscribed_client.get(f"/reviews/{review_id}")
+    assert detail.json()["status"] == "flagged"
 
 
 def test_approve_review(subscribed_client):
