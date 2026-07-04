@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     # URLs — set these per environment in .env
     GOOGLE_OAUTH_REDIRECT_URI: str = "http://localhost:8000/google/callback"
     FRONTEND_URL: str = "http://localhost:3000"
+    BACKEND_URL: str = "http://localhost:8000"
     CORS_ORIGINS: str = "http://localhost:3000"
 
     # Admin access — comma-separated list of email addresses

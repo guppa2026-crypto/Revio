@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Star, Clock, CreditCard, Settings, LogOut, Plus,
-  AlertTriangle, LayoutDashboard, RefreshCw, X, Menu, Search, TrendingUp,
+  AlertTriangle, LayoutDashboard, RefreshCw, X, Menu, Search, TrendingUp, BarChart2,
 } from 'lucide-react'
 import api from '@/lib/api'
 import RatingGoal from '@/components/RatingGoal'
@@ -471,6 +471,10 @@ export default function DashboardPage() {
               <LayoutDashboard size={15} />
               Dashboard
               {needsActionCount > 0 && <span className="nav-badge">{needsActionCount}</span>}
+            </button>
+            <button className="nav-item" onClick={() => { setMobileNavOpen(false); router.push('/analytics') }}>
+              <BarChart2 size={15} />
+              Analytics
             </button>
             <button className="nav-item" onClick={() => { setMobileNavOpen(false); router.push('/billing') }}>
               <CreditCard size={15} />

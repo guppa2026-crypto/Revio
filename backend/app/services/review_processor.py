@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.review import Review
 from app.models.tenant import Tenant
 from app.services.ai_service import analyze_review, generate_reply
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -66,14 +67,18 @@ def _notify_flagged(review: Review, db: Session) -> None:
 def _notify_approval_needed(review: Review, db: Session) -> None:
     try:
         from app.services.email_service import send_approval_needed
+        from app.utils.approval_token import generate_approval_token
         tenant = db.query(Tenant).filter(Tenant.id == review.tenant_id).first()
         if tenant and tenant.email:
+            token = generate_approval_token(str(review.id))
+            approval_url = f"{settings.BACKEND_URL}/reviews/approve-via-email?token={token}"
             send_approval_needed(
                 tenant.email,
                 review.reviewer_name or "Anonymous",
                 review.rating,
                 review.review_text or "",
                 review.generated_reply or "",
+                approval_url=approval_url,
             )
     except Exception:
         logger.exception("Failed to send approval needed email for review %s", review.id)

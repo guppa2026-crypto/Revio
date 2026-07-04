@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, CreditCard, Settings, LogOut, Menu, CheckCircle, ArrowRight } from 'lucide-react'
+import { LayoutDashboard, CreditCard, Settings, LogOut, Menu, CheckCircle, ArrowRight, BarChart2 } from 'lucide-react'
 import api from '@/lib/api'
 import axios from 'axios'
 
@@ -185,6 +185,10 @@ export default function BillingPage() {
             <button className="bl-nav-item" onClick={() => { setMobileNavOpen(false); router.push('/dashboard') }}>
               <LayoutDashboard size={15} />
               Dashboard
+            </button>
+            <button className="bl-nav-item" onClick={() => { setMobileNavOpen(false); router.push('/analytics') }}>
+              <BarChart2 size={15} />
+              Analytics
             </button>
             <button className="bl-nav-item active">
               <CreditCard size={15} />

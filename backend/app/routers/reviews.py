@@ -1,4 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 from uuid import UUID
@@ -10,6 +11,7 @@ from app.models.tenant import Tenant
 from app.utils.dependencies import get_current_user
 from app.utils.limiter import limiter
 from app.services.review_processor import process_review
+from app.config import settings
 from datetime import datetime, timezone
 import logging
 import uuid
@@ -33,6 +35,64 @@ def require_subscription(
             detail="Active subscription required. Please upgrade at /billing.",
         )
     return tenant
+
+
+def _approval_html(heading: str, body: str, color: str = "#16A34A") -> str:
+    return f"""<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{heading} — Revio</title></head>
+<body style="margin:0;font-family:system-ui,sans-serif;background:#F5F4F1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+<div style="background:#fff;border:1px solid #E8E6E0;border-radius:20px;padding:40px 36px;max-width:440px;width:100%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+  <div style="width:48px;height:48px;border-radius:50%;background:{color}22;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;">{'✓' if color == '#16A34A' else '!'}</div>
+  <h1 style="font-size:20px;font-weight:700;color:#1A1916;margin:0 0 10px;">{heading}</h1>
+  <p style="font-size:14px;color:#6B6963;margin:0 0 28px;line-height:1.6;">{body}</p>
+  <a href="{settings.FRONTEND_URL}/dashboard" style="display:inline-block;background:#1A1916;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;">Go to Dashboard →</a>
+</div>
+</body></html>"""
+
+
+@router.get("/approve-via-email", response_class=HTMLResponse, include_in_schema=False)
+def approve_via_email(token: str, db: Session = Depends(get_db)):
+    """One-click approval from a signed email link — no login required."""
+    from app.utils.approval_token import verify_approval_token
+    review_id = verify_approval_token(token)
+    if not review_id:
+        return HTMLResponse(
+            _approval_html(
+                "Link expired or invalid",
+                "This approval link has expired or is no longer valid. Please log in to your dashboard to approve the reply manually.",
+                color="#B91C1C",
+            ),
+            status_code=400,
+        )
+    try:
+        review = db.query(Review).filter(Review.id == UUID(review_id)).first()
+    except Exception:
+        review = None
+
+    if not review:
+        return HTMLResponse(
+            _approval_html("Review not found", "We couldn't find this review.", color="#B91C1C"),
+            status_code=404,
+        )
+    if review.status != "pending":
+        return HTMLResponse(
+            _approval_html(
+                "Already actioned",
+                f"This reply has already been {review.status}. No further action needed.",
+                color="#D97706",
+            )
+        )
+
+    review.status = "approved"
+    db.commit()
+    return HTMLResponse(
+        _approval_html(
+            "Reply approved",
+            "The AI-generated reply has been approved and will be posted to your Google Business Profile shortly.",
+        )
+    )
 
 
 @router.get("/")

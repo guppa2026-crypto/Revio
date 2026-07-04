@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from app.routers import auth, reviews, billing, admin, google
+from app.routers import auth, reviews, billing, admin, google, analytics
 from app.routers import settings as settings_router
 from app.utils.dependencies import get_current_user
 from app.utils.limiter import limiter
@@ -102,6 +102,7 @@ app.include_router(billing.router)
 app.include_router(admin.router)
 app.include_router(google.router)
 app.include_router(settings_router.router)
+app.include_router(analytics.router)
 
 
 @app.get("/")

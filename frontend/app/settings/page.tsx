@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, CreditCard, Settings, LogOut, Menu } from 'lucide-react'
+import { LayoutDashboard, CreditCard, Settings, LogOut, Menu, BarChart2 } from 'lucide-react'
 import api from '@/lib/api'
 
 const TONE_PRESETS = [
@@ -186,6 +186,10 @@ export default function SettingsPage() {
             <button className="st-nav-item" onClick={() => { setMobileNavOpen(false); router.push('/dashboard') }}>
               <LayoutDashboard size={15} />
               Dashboard
+            </button>
+            <button className="st-nav-item" onClick={() => { setMobileNavOpen(false); router.push('/analytics') }}>
+              <BarChart2 size={15} />
+              Analytics
             </button>
             <button className="st-nav-item" onClick={() => { setMobileNavOpen(false); router.push('/billing') }}>
               <CreditCard size={15} />
