@@ -1,10 +1,16 @@
 """Tests for the reviews router: subscription gate, import validation, workflow."""
 import pytest
+from datetime import datetime, timezone, timedelta
 
 
 @pytest.fixture
-def unsubscribed_client(client, make_user):
-    make_user(email="nosub@test.com", is_subscribed=False)
+def unsubscribed_client(client, make_user, db):
+    """A logged-in user whose trial has expired and has no subscription."""
+    from app.models.tenant import Tenant
+    tenant, _ = make_user(email="nosub@test.com", is_subscribed=False)
+    # Backdate created_at so the 7-day trial is considered expired
+    tenant.created_at = datetime.now(timezone.utc) - timedelta(days=8)
+    db.commit()
     client.post("/auth/login", json={"email": "nosub@test.com", "password": "TestPass1!"})
     return client
 
@@ -23,7 +29,7 @@ def subscribed_client(client, make_user):
 def test_list_reviews_blocked_without_subscription(unsubscribed_client):
     res = unsubscribed_client.get("/reviews/")
     assert res.status_code == 403
-    assert "subscription" in res.json()["detail"].lower()
+    assert "trial" in res.json()["detail"].lower() or "subscribe" in res.json()["detail"].lower()
 
 
 def test_import_blocked_without_subscription(unsubscribed_client):

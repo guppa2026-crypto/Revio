@@ -12,7 +12,7 @@ from app.utils.dependencies import get_current_user
 from app.utils.limiter import limiter
 from app.services.review_processor import process_review
 from app.config import settings
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import logging
 import uuid
 
@@ -21,18 +21,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 
 
+TRIAL_DAYS = 7
+
+
+def _in_trial(tenant: Tenant) -> bool:
+    created = tenant.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) < created + timedelta(days=TRIAL_DAYS)
+
+
 def require_subscription(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Tenant:
-    """Block access if tenant has no active subscription."""
+    """Allow access during the 7-day free trial or with an active subscription."""
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
-    if not tenant.is_subscribed:
+    if not tenant.is_subscribed and not _in_trial(tenant):
         raise HTTPException(
             status_code=403,
-            detail="Active subscription required. Please upgrade at /billing.",
+            detail="Your free trial has ended. Please subscribe at /billing.",
         )
     return tenant
 

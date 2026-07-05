@@ -4,6 +4,7 @@ import redis
 from uuid import UUID as PyUUID
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone, timedelta
 from app.database import get_db
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -56,10 +57,20 @@ def billing_status(
     subscription = None
     if tenant.stripe_subscription_id:
         subscription = get_subscription(tenant.stripe_subscription_id)
+    created = tenant.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    trial_end = created + timedelta(days=7)
+    now = datetime.now(timezone.utc)
+    trial_days_remaining = max(0, (trial_end.date() - now.date()).days)
+    is_trial = not tenant.is_subscribed and trial_days_remaining > 0
+
     return {
         "is_subscribed": tenant.is_subscribed,
         "subscription_status": tenant.subscription_status,
         "current_period_end": subscription.get("current_period_end") if subscription else None,
+        "is_trial": is_trial,
+        "trial_days_remaining": trial_days_remaining,
     }
 
 

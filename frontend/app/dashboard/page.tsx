@@ -8,6 +8,12 @@ import {
 import api from '@/lib/api'
 import RatingGoal from '@/components/RatingGoal'
 
+type BillingInfo = {
+  is_subscribed: boolean
+  is_trial: boolean
+  trial_days_remaining: number
+}
+
 type Review = {
   id: string
   reviewer_name: string
@@ -94,6 +100,7 @@ export default function DashboardPage() {
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [billingInfo, setBillingInfo] = useState<BillingInfo | null>(null)
 
   // Location picker
   const [showLocationPicker, setShowLocationPicker] = useState(false)
@@ -129,6 +136,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchReviews()
+    api.get('/billing/status').then(r => setBillingInfo(r.data)).catch(() => {})
     if (typeof window !== 'undefined' && window.location.search.includes('google=connected')) {
       setShowLocationPicker(true)
       loadAccounts()
@@ -436,6 +444,20 @@ export default function DashboardPage() {
     .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
     .modal-error { font-size: 13px; color: #DC2626; background: #FEF2F2; border-radius: 8px; padding: 10px 13px; margin-bottom: 14px; }
 
+    /* TRIAL BANNER */
+    .trial-banner { background: #FFFBEB; border-bottom: 1px solid #FDE68A; padding: 10px 28px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13.5px; color: #92400E; flex-wrap: wrap; }
+    .trial-banner strong { font-weight: 700; }
+    .trial-banner-btn { font-size: 13px; font-weight: 600; color: #fff; background: #D97706; border: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
+    .trial-banner-btn:hover { background: #B45309; }
+
+    /* LOCKED RATING GOAL */
+    .rg-locked { background: #fff; border: 1px solid #E8E6E0; border-left: 3px solid #D1D5DB; border-radius: 14px; padding: 16px 20px; margin-bottom: 2rem; display: flex; align-items: center; gap: 14px; }
+    .rg-locked-icon { width: 36px; height: 36px; border-radius: 10px; background: #F3F4F6; color: #9CA3AF; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rg-locked-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9E9B93; margin-bottom: 3px; }
+    .rg-locked-body { font-size: 14px; color: #6B6963; }
+    .rg-locked-btn { margin-left: auto; flex-shrink: 0; font-size: 13px; font-weight: 600; color: #fff; background: #1A1916; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .rg-locked-btn:hover { background: #2D2D2A; }
+
     @media (max-width: 768px) {
       .sidebar { transform: translateX(-100%); }
       .sidebar.open { transform: translateX(0); }
@@ -447,6 +469,7 @@ export default function DashboardPage() {
       .search-filter-row { flex-direction: column; align-items: stretch; }
       .search-wrap { max-width: 100%; }
       .filter-tabs { overflow-x: auto; }
+      .trial-banner { padding: 10px 16px; }
     }
   `
 
@@ -513,6 +536,16 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
+
+          {billingInfo?.is_trial && !billingInfo?.is_subscribed && (
+            <div className="trial-banner">
+              <span>
+                <strong>Free trial</strong> — {billingInfo.trial_days_remaining === 0 ? 'last day' : `${billingInfo.trial_days_remaining} day${billingInfo.trial_days_remaining === 1 ? '' : 's'} remaining`}.
+                {' '}Subscribe to keep full access and unlock the Rating Goal Tracker.
+              </span>
+              <button className="trial-banner-btn" onClick={() => router.push('/billing')}>Subscribe now</button>
+            </div>
+          )}
 
           <div className="content">
             {locked ? (
@@ -587,7 +620,18 @@ export default function DashboardPage() {
                 </div>
 
                 {/* RATING GOAL */}
-                <RatingGoal rating={avgRating} count={reviews.length} />
+                {billingInfo?.is_subscribed ? (
+                  <RatingGoal rating={avgRating} count={reviews.length} />
+                ) : (
+                  <div className="rg-locked">
+                    <div className="rg-locked-icon">★</div>
+                    <div>
+                      <div className="rg-locked-label">Rating Goal Tracker</div>
+                      <div className="rg-locked-body">See exactly how many 5★ reviews you need to reach your next milestone.</div>
+                    </div>
+                    <button className="rg-locked-btn" onClick={() => router.push('/billing')}>Subscribe to unlock →</button>
+                  </div>
+                )}
 
                 {/* SEARCH + FILTER */}
                 <div className="search-filter-row">
