@@ -1,9 +1,18 @@
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from app.config import settings
 import json
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
+_retry = retry(
+    retry=retry_if_exception_type(RateLimitError),
+    wait=wait_exponential(multiplier=1, min=4, max=60),
+    stop=stop_after_attempt(5),
+    reraise=True,
+)
+
+@_retry
 def analyze_review(review_text: str, rating: int) -> dict:
     prompt = f"""
 You are an expert at analyzing customer reviews for businesses.
@@ -39,6 +48,7 @@ Risk level rules:
     return json.loads(result)
 
 
+@_retry
 def generate_reply(review_text: str, rating: int, business_name: str, risk_level: str = "low", tone_instructions: str = "") -> str:
     if risk_level == "high":
         tone_instruction = """
