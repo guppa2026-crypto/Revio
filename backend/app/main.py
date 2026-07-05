@@ -34,7 +34,7 @@ def _run_migrations():
         command.upgrade(alembic_cfg, "head")
         logger.info("Alembic migrations applied successfully")
     except Exception as exc:
-        logger.warning("Alembic migration skipped: %s", exc)
+        logger.exception("Alembic migration FAILED — app may be running with stale schema: %s", exc)
 
 
 @asynccontextmanager
