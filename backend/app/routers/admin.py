@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 from app.database import get_db
@@ -26,7 +26,17 @@ def get_admin_stats(
 ):
     total_tenants = db.query(Tenant).count()
     subscribed = db.query(Tenant).filter(Tenant.is_subscribed == True).count()
-    mrr = subscribed * 18
+    starter_count = db.query(func.count(Tenant.id)).filter(
+        Tenant.is_subscribed == True,
+        Tenant.subscription_status == "active",
+        Tenant.plan == "starter",
+    ).scalar() or 0
+    pro_count = db.query(func.count(Tenant.id)).filter(
+        Tenant.is_subscribed == True,
+        Tenant.subscription_status == "active",
+        or_(Tenant.plan == "pro", Tenant.plan.is_(None)),
+    ).scalar() or 0
+    mrr = round(starter_count * 7.99 + pro_count * 14.99, 2)
     total_reviews = db.query(Review).count()
 
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
@@ -75,6 +85,7 @@ def get_customers(
 
 class GrantFreeRequest(BaseModel):
     email: str
+    plan: str = "pro"
 
 
 @router.post("/customers/grant-free")
@@ -88,10 +99,12 @@ def grant_free_access(
         raise HTTPException(status_code=404, detail="No tenant found with that email")
     tenant.is_subscribed = True
     tenant.subscription_status = "comp"
+    tenant.plan = body.plan
     db.commit()
     return {
         "id": str(tenant.id),
         "email": tenant.email,
         "is_subscribed": tenant.is_subscribed,
         "subscription_status": tenant.subscription_status,
+        "plan": tenant.plan,
     }

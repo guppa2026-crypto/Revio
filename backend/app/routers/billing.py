@@ -2,14 +2,23 @@ import stripe
 import logging
 import redis
 from uuid import UUID as PyUUID
+from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
 from app.database import get_db
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.services.billing_service import create_checkout_session, cancel_subscription, get_subscription, create_portal_session
+from app.services.billing_service import (
+    create_checkout_session,
+    cancel_subscription,
+    get_subscription,
+    create_portal_session,
+    upgrade_subscription,
+)
 from app.utils.dependencies import get_current_user
+from app.utils.plan_limits import get_reply_limit, get_replies_used
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -26,7 +35,6 @@ def _mark_event_processed(event_id: str) -> bool:
     """
     try:
         key = f"stripe_evt:{event_id}"
-        # SET NX only sets the key when it doesn't exist; returns True if set, None if already existed
         is_new = _redis.set(key, "1", nx=True, ex=604800)  # 7-day TTL
         return is_new is not None
     except Exception:
@@ -34,16 +42,43 @@ def _mark_event_processed(event_id: str) -> bool:
         return True
 
 
+class CheckoutRequest(BaseModel):
+    plan: Literal["starter", "pro"]
+
+
 @router.post("/create-checkout")
 def create_checkout(
+    body: CheckoutRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
-    url = create_checkout_session(tenant.id, tenant.email)
+    if tenant.is_subscribed:
+        raise HTTPException(status_code=400, detail="Already subscribed. Use the upgrade or portal endpoint.")
+    url = create_checkout_session(tenant.id, tenant.email, body.plan)
     return {"checkout_url": url}
+
+
+@router.post("/upgrade")
+def upgrade_to_pro(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
+    if not tenant or not tenant.stripe_subscription_id:
+        raise HTTPException(status_code=400, detail="No active subscription to upgrade")
+    if tenant.plan == "pro":
+        raise HTTPException(status_code=400, detail="Already on Pro plan")
+    if not settings.STRIPE_PRO_PRICE_ID:
+        raise HTTPException(status_code=500, detail="Pro price not configured")
+    success = upgrade_subscription(tenant.stripe_subscription_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Upgrade failed. Please try again.")
+    tenant.plan = "pro"
+    db.commit()
+    return {"message": "Upgraded to Pro"}
 
 
 @router.get("/status")
@@ -54,9 +89,11 @@ def billing_status(
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
+
     subscription = None
     if tenant.stripe_subscription_id:
         subscription = get_subscription(tenant.stripe_subscription_id)
+
     created = tenant.created_at
     if created.tzinfo is None:
         created = created.replace(tzinfo=timezone.utc)
@@ -65,12 +102,19 @@ def billing_status(
     trial_days_remaining = max(0, (trial_end.date() - now.date()).days)
     is_trial = not tenant.is_subscribed and trial_days_remaining > 0
 
+    limit = get_reply_limit(tenant)
+    all_time = not tenant.is_subscribed
+    replies_used = get_replies_used(tenant.id, db, all_time=all_time) if limit is not None else 0
+
     return {
         "is_subscribed": tenant.is_subscribed,
         "subscription_status": tenant.subscription_status,
         "current_period_end": subscription.get("current_period_end") if subscription else None,
         "is_trial": is_trial,
         "trial_days_remaining": trial_days_remaining,
+        "plan": tenant.plan,
+        "ai_replies_used": replies_used,
+        "ai_replies_limit": limit,
     }
 
 
@@ -82,7 +126,7 @@ def billing_portal(
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant or not tenant.stripe_customer_id:
         raise HTTPException(status_code=400, detail="No billing account found. Please subscribe first.")
-    url = create_portal_session(tenant.stripe_customer_id, f"{settings.FRONTEND_URL}/settings")
+    url = create_portal_session(tenant.stripe_customer_id, f"{settings.FRONTEND_URL}/billing")
     return {"portal_url": url}
 
 
@@ -124,7 +168,6 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     obj = event["data"]["object"]
     logger.info("Stripe webhook received: %s (%s)", event_type, event_id)
 
-    # Idempotency guard — Stripe retries on non-2xx responses, so we deduplicate via Redis
     if not _mark_event_processed(event_id):
         logger.info("Stripe event %s already processed — skipping", event_id)
         return {"status": "ok"}
@@ -150,8 +193,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         tenant.stripe_subscription_id = obj.get("subscription")
         tenant.is_subscribed = True
         tenant.subscription_status = "active"
+        tenant.plan = metadata.get("plan") or "pro"
         db.commit()
-        logger.info("Tenant %s activated via checkout", tenant_id)
+        logger.info("Tenant %s activated on %s plan via checkout", tenant_id, tenant.plan)
 
     elif event_type == "customer.subscription.updated":
         stripe_status = obj.get("status")
@@ -164,6 +208,16 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
         tenant.subscription_status = stripe_status
         tenant.is_subscribed = stripe_status in ("active", "trialing")
+
+        # Keep plan in sync if changed via portal
+        items = obj.get("items", {}).get("data", [])
+        if items:
+            price_id = items[0].get("price", {}).get("id")
+            if price_id == settings.STRIPE_STARTER_PRICE_ID:
+                tenant.plan = "starter"
+            elif price_id == settings.STRIPE_PRO_PRICE_ID:
+                tenant.plan = "pro"
+
         db.commit()
         logger.info("Tenant %s subscription updated to %s", tenant.id, stripe_status)
 

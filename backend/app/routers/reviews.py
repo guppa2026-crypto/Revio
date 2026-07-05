@@ -186,6 +186,9 @@ def regenerate_reply(
     current_user: User = Depends(get_current_user),
     tenant: Tenant = Depends(require_subscription),
 ):
+    from app.utils.plan_limits import at_reply_limit
+    if at_reply_limit(tenant, db):
+        raise HTTPException(status_code=429, detail="AI reply limit reached for your current plan.")
     review = db.query(Review).filter(
         Review.id == review_id,
         Review.tenant_id == current_user.tenant_id,
@@ -237,10 +240,17 @@ class ManualReviewInput(BaseModel):
 def _process_review_background(review_id: str, tenant_name: str, tone_instructions: str) -> None:
     from uuid import UUID as PyUUID
     from app.database import SessionLocal
+    from app.utils.plan_limits import at_reply_limit
     db = SessionLocal()
     try:
         review = db.query(Review).filter(Review.id == PyUUID(review_id)).first()
         if review:
+            tenant = db.query(Tenant).filter(Tenant.id == review.tenant_id).first()
+            if tenant and at_reply_limit(tenant, db):
+                review.status = "pending"
+                db.commit()
+                logger.info("Review %s skipped AI — tenant %s at reply limit", review_id, review.tenant_id)
+                return
             process_review(review, db, tenant_name, tone_instructions=tone_instructions)
     except Exception:
         logger.exception("Background review processing failed for %s", review_id)

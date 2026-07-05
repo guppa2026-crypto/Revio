@@ -16,6 +16,7 @@ class Tenant(Base):
     is_active = Column(Boolean, default=True)
     is_subscribed = Column(Boolean, default=False)
     subscription_status = Column(String, nullable=True)  # active | past_due | canceled | trialing | comp
+    plan = Column(String, nullable=True)  # starter | pro | None (legacy/comp = unlimited)
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
     google_access_token = Column(EncryptedString, nullable=True)

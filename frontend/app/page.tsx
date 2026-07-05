@@ -149,20 +149,35 @@ export default function HomePage() {
 
     /* PRICING */
     .pricing-wrap { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem 5rem; }
-    .pricing-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
-    .pricing-left h2 { font-size: clamp(28px, 3vw, 40px); font-weight: 800; letter-spacing: -0.03em; color: #111110; margin-bottom: 12px; line-height: 1.15; }
-    .pricing-left p { font-size: 16px; color: #6B6963; line-height: 1.65; }
-    .price-card { background: #111110; border-radius: 20px; padding: 36px; color: #fff; }
-    .price-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 16px; }
-    .price-amount { font-size: 52px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
-    .price-period { font-size: 15px; font-weight: 400; color: rgba(255,255,255,0.45); margin-left: 4px; }
-    .price-vat { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 4px; margin-bottom: 28px; }
-    .price-features { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
-    .price-feature { display: flex; align-items: center; gap: 10px; font-size: 14px; color: rgba(255,255,255,0.75); }
-    .price-check { width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .price-check svg { color: rgba(255,255,255,0.6); }
-    .price-cta { display: block; text-align: center; font-size: 15px; font-weight: 700; color: #111110; background: #fff; padding: 14px; border-radius: 11px; transition: opacity 0.15s; }
-    .price-cta:hover { opacity: 0.9; }
+    .pricing-intro { text-align: center; margin-bottom: 3rem; }
+    .pricing-intro h2 { font-size: clamp(28px, 3vw, 40px); font-weight: 800; letter-spacing: -0.03em; color: #111110; margin-bottom: 12px; line-height: 1.15; }
+    .pricing-intro p { font-size: 16px; color: #6B6963; line-height: 1.65; max-width: 440px; margin: 0 auto; }
+    .pricing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 780px; margin: 0 auto; }
+    .price-card { background: #fff; border: 1.5px solid #E8E6E0; border-radius: 20px; padding: 36px; display: flex; flex-direction: column; }
+    .price-card.featured { background: #111110; border-color: #111110; }
+    .price-plan-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #E10E1C; background: #FDECEC; border: 1px solid #F8C9CC; padding: 3px 10px; border-radius: 99px; margin-bottom: 16px; width: fit-content; }
+    .price-label { font-size: 13px; font-weight: 700; letter-spacing: 0.01em; color: #1A1916; margin-bottom: 4px; }
+    .price-card.featured .price-label { color: rgba(255,255,255,0.55); }
+    .price-amount { font-size: 48px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: #111110; }
+    .price-card.featured .price-amount { color: #fff; }
+    .price-period { font-size: 15px; font-weight: 400; color: #A8A49C; margin-left: 4px; }
+    .price-card.featured .price-period { color: rgba(255,255,255,0.4); }
+    .price-vat { font-size: 12px; color: #A8A49C; margin-top: 4px; margin-bottom: 12px; }
+    .price-card.featured .price-vat { color: rgba(255,255,255,0.3); }
+    .price-reply-limit { font-size: 13px; font-weight: 600; color: #E10E1C; background: #FDECEC; border: 1px solid #F8C9CC; padding: 5px 11px; border-radius: 8px; margin-bottom: 22px; width: fit-content; }
+    .price-card.featured .price-reply-limit { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); }
+    .price-features { display: flex; flex-direction: column; gap: 11px; margin-bottom: 28px; flex: 1; }
+    .price-feature { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #4A4844; }
+    .price-card.featured .price-feature { color: rgba(255,255,255,0.7); }
+    .price-check { width: 18px; height: 18px; border-radius: 50%; background: #F0EFE8; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .price-check svg { color: #6B6963; }
+    .price-card.featured .price-check { background: rgba(255,255,255,0.1); }
+    .price-card.featured .price-check svg { color: rgba(255,255,255,0.5); }
+    .price-cta { display: block; text-align: center; font-size: 15px; font-weight: 700; padding: 14px; border-radius: 11px; transition: opacity 0.15s; margin-top: auto; }
+    .price-cta-dark { color: #fff; background: #111110; }
+    .price-cta-dark:hover { opacity: 0.8; }
+    .price-cta-white { color: #111110; background: #fff; }
+    .price-cta-white:hover { opacity: 0.9; }
 
     /* CTA BAND */
     .cta-wrap { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem 5rem; }
@@ -189,7 +204,7 @@ export default function HomePage() {
       .steps-grid { grid-template-columns: 1fr; }
       .features-grid { grid-template-columns: 1fr; }
       .trust-grid { grid-template-columns: 1fr; }
-      .pricing-inner { grid-template-columns: 1fr; gap: 2rem; }
+      .pricing-cards { grid-template-columns: 1fr; }
       .how-wrap, .features-wrap, .trust-wrap, .faq-wrap, .pricing-wrap, .cta-wrap, .footer-wrap, .divider { padding-left: 1.5rem; padding-right: 1.5rem; }
       .nav { padding: 0 1.5rem; }
     }
@@ -235,7 +250,7 @@ export default function HomePage() {
               </a>
               <a className="btn-light" href="#how">See how it works</a>
             </div>
-            <div className="hero-note">£12.99/month · no setup fee · cancel anytime</div>
+            <div className="hero-note">From £7.99/month · no setup fee · cancel anytime</div>
           </div>
 
           <div className="preview-wrap">
@@ -390,24 +405,29 @@ export default function HomePage() {
 
         {/* PRICING */}
         <div className="pricing-wrap" style={{paddingTop: '5rem'}}>
-          <div className="pricing-inner">
-            <div className="pricing-left">
-              <div className="section-eyebrow">Pricing</div>
-              <h2>One plan.<br />No surprises.</h2>
-              <p>Everything you need to stay on top of your Google reviews. One business location, unlimited reviews, cancel any time.</p>
-            </div>
+          <div className="pricing-intro">
+            <div className="section-eyebrow">Pricing</div>
+            <h2>Simple pricing.<br />No surprises.</h2>
+            <p>One Google Business Profile location. All features included on every plan. Cancel any time.</p>
+          </div>
+          <div className="pricing-cards">
+            {/* STARTER */}
             <div className="price-card">
-              <div className="price-label">Revio Pro</div>
-              <div className="price-amount">£12.99<span className="price-period">/month</span></div>
+              <div className="price-label">Starter</div>
+              <div>
+                <span className="price-amount">£7.99</span>
+                <span className="price-period">/month</span>
+              </div>
               <div className="price-vat">inc. VAT</div>
+              <div className="price-reply-limit">30 AI replies / month</div>
               <div className="price-features">
                 {[
                   'One Google Business Profile location',
-                  'Unlimited reviews & AI replies',
                   'Automated reply generation',
+                  'Risk-based auto-post controls',
                   'Email alerts for flagged reviews',
                   'Rating goal tracker & calculator',
-                  'Risk-based auto-post controls',
+                  'Approve, edit, or reject any reply',
                 ].map(f => (
                   <div key={f} className="price-feature">
                     <div className="price-check"><CheckCircle size={11} /></div>
@@ -415,7 +435,38 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-              <a className="price-cta" href={primaryHref}>{primaryLabel}</a>
+              <a className="price-cta price-cta-dark" href={primaryHref}>{primaryLabel}</a>
+            </div>
+
+            {/* PRO */}
+            <div className="price-card featured">
+              <div className="price-plan-badge">
+                <Zap size={10} />
+                Most popular
+              </div>
+              <div className="price-label">Pro</div>
+              <div>
+                <span className="price-amount">£14.99</span>
+                <span className="price-period">/month</span>
+              </div>
+              <div className="price-vat">inc. VAT</div>
+              <div className="price-reply-limit">Unlimited AI replies</div>
+              <div className="price-features">
+                {[
+                  'One Google Business Profile location',
+                  'Automated reply generation',
+                  'Risk-based auto-post controls',
+                  'Email alerts for flagged reviews',
+                  'Rating goal tracker & calculator',
+                  'Approve, edit, or reject any reply',
+                ].map(f => (
+                  <div key={f} className="price-feature">
+                    <div className="price-check"><CheckCircle size={11} /></div>
+                    {f}
+                  </div>
+                ))}
+              </div>
+              <a className="price-cta price-cta-white" href={primaryHref}>{primaryLabel}</a>
             </div>
           </div>
         </div>
