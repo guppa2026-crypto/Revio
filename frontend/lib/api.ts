@@ -6,11 +6,12 @@ const api = axios.create({
   withCredentials: true,  // send the httpOnly auth cookie on every request
 })
 
-// Redirect to login on 401 (session expired or not authenticated)
+// Redirect to login on 401 (session expired), but not on the login endpoint itself
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isLoginEndpoint = error.config?.url?.includes('/auth/login')
+    if (error.response?.status === 401 && !isLoginEndpoint) {
       window.location.href = '/login'
     }
     return Promise.reject(error)
