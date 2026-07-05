@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_, text
+from sqlalchemy import func, or_
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
-from app.database import get_db, engine
+from app.database import get_db
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.models.review import Review
@@ -82,22 +82,6 @@ def get_customers(
 
     return {"total": total, "skip": skip, "limit": limit, "customers": result}
 
-
-@router.post("/fix-schema")
-def fix_schema(secret: str = Query(...)):
-    """One-shot: add missing columns that Alembic failed to apply. Protected by SECRET_KEY."""
-    if secret != settings.SECRET_KEY:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    results = []
-    with engine.connect() as conn:
-        for col, ddl in [
-            ("tone_instructions", "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tone_instructions TEXT"),
-            ("plan", "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan VARCHAR"),
-        ]:
-            conn.execute(text(ddl))
-            conn.commit()
-            results.append(f"{col}: added (or already existed)")
-    return {"fixed": results}
 
 
 class GrantFreeRequest(BaseModel):
