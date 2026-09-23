@@ -11,8 +11,10 @@ from app.models.tenant import Tenant
 from app.utils.dependencies import get_current_user
 from app.utils.limiter import limiter
 from app.services.review_processor import process_review
+from app.services.google_service import refresh_access_token, post_reply
 from app.config import settings
 from datetime import datetime, timezone, timedelta
+import html
 import logging
 import uuid
 
@@ -47,7 +49,7 @@ def require_subscription(
     return tenant
 
 
-def _approval_html(heading: str, body: str, color: str = "#16A34A") -> str:
+def _approval_html(heading: str, body: str, color: str = "#16A34A", extra: str = "") -> str:
     return f"""<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -57,18 +59,94 @@ def _approval_html(heading: str, body: str, color: str = "#16A34A") -> str:
   <div style="width:48px;height:48px;border-radius:50%;background:{color}22;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;">{'✓' if color == '#16A34A' else '!'}</div>
   <h1 style="font-size:20px;font-weight:700;color:#1A1916;margin:0 0 10px;">{heading}</h1>
   <p style="font-size:14px;color:#6B6963;margin:0 0 28px;line-height:1.6;">{body}</p>
+  {extra}
   <a href="{settings.FRONTEND_URL}/dashboard" style="display:inline-block;background:#1A1916;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;">Go to Dashboard →</a>
 </div>
 </body></html>"""
 
 
-@router.get("/approve-via-email", response_class=HTMLResponse, include_in_schema=False)
-def approve_via_email(token: str, db: Session = Depends(get_db)):
-    """One-click approval from a signed email link — no login required."""
+class ApproveRequest(BaseModel):
+    reply: Optional[str] = Field(None, max_length=4096)
+
+    @field_validator("reply", mode="before")
+    @classmethod
+    def strip_whitespace(cls, v):
+        return v.strip() if isinstance(v, str) else v
+
+
+async def _approve_and_post(
+    review: Review,
+    tenant: Tenant,
+    db: Session,
+    allowed_statuses: tuple[str, ...],
+    reply_text: Optional[str] = None,
+) -> dict:
+    """Approve a reply and post it to Google. Raises HTTPException on failure.
+
+    The review is claimed with a conditional update (status -> 'approved') before
+    posting, so a retried or concurrent request can't post the same reply twice.
+    """
+    text = reply_text if reply_text is not None else (review.generated_reply or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Reply text cannot be empty")
+
+    previous_status = review.status
+    if previous_status not in allowed_statuses:
+        raise HTTPException(status_code=409, detail=f"This reply has already been {previous_status}")
+
+    is_manual = review.google_review_id.startswith("manual_")
+    if not is_manual and not (tenant.google_access_token and tenant.google_account_id and tenant.google_location_id):
+        raise HTTPException(status_code=400, detail="Connect Google and select a location before posting replies")
+
+    claimed = db.query(Review).filter(
+        Review.id == review.id,
+        Review.status == previous_status,
+    ).update(
+        {"status": "approved", "generated_reply": text, "reply_at": None},
+        synchronize_session=False,
+    )
+    db.commit()
+    db.refresh(review)
+    if not claimed:
+        raise HTTPException(status_code=409, detail=f"This reply has already been {review.status}")
+
+    if is_manual:
+        # Manually imported reviews have no Google review to reply to
+        return {
+            "message": "Reply approved. This review was imported manually, so copy the reply to Google yourself.",
+            "review_id": str(review.id),
+            "status": review.status,
+        }
+
+    try:
+        token = await refresh_access_token(tenant, db)
+        await post_reply(
+            token,
+            tenant.google_account_id,
+            tenant.google_location_id,
+            review.google_review_id,
+            text,
+        )
+    except Exception:
+        logger.exception("Failed to post approved reply for review %s (tenant %s)", review.id, tenant.id)
+        # Scheduled reviews go back to pending, not scheduled — never auto-post after a failed manual post
+        review.status = "pending" if previous_status == "scheduled" else previous_status
+        db.commit()
+        raise HTTPException(status_code=502, detail="Google did not accept the reply, so it was not posted. Please try again.")
+
+    review.status = "posted"
+    review.posted_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(review)
+    return {"message": "Reply posted to Google", "review_id": str(review.id), "status": review.status}
+
+
+def _review_from_email_token(token: str, db: Session):
+    """Return (review, error_response). Exactly one is None."""
     from app.utils.approval_token import verify_approval_token
     review_id = verify_approval_token(token)
     if not review_id:
-        return HTMLResponse(
+        return None, HTMLResponse(
             _approval_html(
                 "Link expired or invalid",
                 "This approval link has expired or is no longer valid. Please log in to your dashboard to approve the reply manually.",
@@ -80,29 +158,64 @@ def approve_via_email(token: str, db: Session = Depends(get_db)):
         review = db.query(Review).filter(Review.id == UUID(review_id)).first()
     except Exception:
         review = None
-
     if not review:
-        return HTMLResponse(
+        return None, HTMLResponse(
             _approval_html("Review not found", "We couldn't find this review.", color="#B91C1C"),
             status_code=404,
         )
     if review.status != "pending":
-        return HTMLResponse(
+        return None, HTMLResponse(
             _approval_html(
                 "Already actioned",
                 f"This reply has already been {review.status}. No further action needed.",
                 color="#D97706",
             )
         )
+    return review, None
 
-    review.status = "approved"
-    db.commit()
+
+@router.get("/approve-via-email", response_class=HTMLResponse, include_in_schema=False)
+def approve_via_email_confirm(token: str, db: Session = Depends(get_db)):
+    """Confirmation page for the email approval link.
+
+    Posting happens on POST only, so email link scanners that prefetch the URL
+    can't publish a reply without the owner clicking the button.
+    """
+    review, error = _review_from_email_token(token, db)
+    if error:
+        return error
+    form = f"""
+  <p style="font-size:14px;color:#1A1916;background:#F5F4F1;border-radius:10px;padding:14px 16px;text-align:left;line-height:1.6;margin:0 0 20px;white-space:pre-wrap;">{html.escape(review.generated_reply or "")}</p>
+  <form method="post" action="{settings.BACKEND_URL}/reviews/approve-via-email?token={html.escape(token)}" style="margin:0 0 14px;">
+    <button type="submit" style="background:#16A34A;color:#fff;border:0;padding:12px 28px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;">Approve &amp; post to Google</button>
+  </form>"""
     return HTMLResponse(
         _approval_html(
-            "Reply approved",
-            "The AI-generated reply has been approved and will be posted to your Google Business Profile shortly.",
+            "Approve this reply?",
+            "This reply will be posted publicly to your Google Business Profile. To change it first, use the dashboard.",
+            color="#D97706",
+            extra=form,
         )
     )
+
+
+@router.post("/approve-via-email", response_class=HTMLResponse, include_in_schema=False)
+async def approve_via_email(token: str, db: Session = Depends(get_db)):
+    """One-click approval from a signed email link — no login required."""
+    review, error = _review_from_email_token(token, db)
+    if error:
+        return error
+    tenant = db.query(Tenant).filter(Tenant.id == review.tenant_id).first()
+    try:
+        result = await _approve_and_post(review, tenant, db, ("pending",))
+    except HTTPException as exc:
+        return HTMLResponse(
+            _approval_html("Reply not posted", html.escape(exc.detail), color="#B91C1C"),
+            status_code=exc.status_code,
+        )
+    if result["status"] == "posted":
+        return HTMLResponse(_approval_html("Reply posted", "Your reply is now live on your Google Business Profile."))
+    return HTMLResponse(_approval_html("Reply approved", html.escape(result["message"])))
 
 
 @router.get("/")
@@ -138,24 +251,25 @@ def get_review(
 
 
 @router.post("/{review_id}/approve")
-def approve_reply(
+async def approve_reply(
     review_id: UUID,
+    data: Optional[ApproveRequest] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     tenant: Tenant = Depends(require_subscription),
 ):
+    """Explicit human approval: posts the (optionally edited) reply to Google."""
     review = db.query(Review).filter(
         Review.id == review_id,
         Review.tenant_id == current_user.tenant_id,
     ).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
-    if review.status != "pending":
-        raise HTTPException(status_code=400, detail="Review is not pending approval")
-    review.status = "approved"
-    db.commit()
-    db.refresh(review)
-    return {"message": "Reply approved", "review_id": str(review.id)}
+    return await _approve_and_post(
+        review, tenant, db,
+        ("pending", "flagged", "scheduled"),
+        reply_text=data.reply if data else None,
+    )
 
 
 @router.post("/{review_id}/reject")

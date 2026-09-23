@@ -198,8 +198,19 @@ export default function DashboardPage() {
 
   const handleApprove = async (id: string) => {
     setApproving(id)
-    try { await api.post('/reviews/' + id + '/approve'); await fetchReviews() }
-    finally { setApproving(null) }
+    try {
+      const edited = editing[id]
+      const res = await api.post('/reviews/' + id + '/approve', edited !== undefined ? { reply: edited } : {})
+      setEditing(e => { const n = { ...e }; delete n[id]; return n })
+      if (res.data.status !== 'posted') alert(res.data.message)
+    } catch (err) {
+      // Keep the edit open so the user's text isn't lost
+      const detail = (err as { response?: { data?: { detail?: unknown } } }).response?.data?.detail
+      alert(typeof detail === 'string' ? detail : 'Failed to post reply. It was not posted — please try again.')
+    } finally {
+      setApproving(null)
+      await fetchReviews()
+    }
   }
 
   const handleReject = async (id: string) => {
