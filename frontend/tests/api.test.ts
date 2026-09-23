@@ -11,6 +11,8 @@ Object.defineProperty(window, 'location', {
   value: { href: '' },
 })
 
+type InterceptorManager = { handlers: { rejected: (e: unknown) => Promise<unknown> }[] }
+
 describe('api client', () => {
   beforeEach(() => {
     vi.resetModules()
@@ -47,5 +49,27 @@ describe('api client', () => {
       // Fallback: at minimum the client is configured for cookies
       expect(api.defaults.withCredentials).toBe(true)
     }
+  })
+
+  it('does not redirect on a public page such as the landing page', async () => {
+    Object.assign(window.location, { pathname: '/' })
+    const { default: api } = await import('@/lib/api')
+
+    const rejectedFn = (api.interceptors.response as unknown as InterceptorManager).handlers[0].rejected
+    await expect(rejectedFn({ response: { status: 401 }, config: { url: '/me' } })).rejects.toBeTruthy()
+    expect(window.location.href).toBe('')
+
+    Object.assign(window.location, { pathname: undefined })
+  })
+
+  it('still redirects on a protected page', async () => {
+    Object.assign(window.location, { pathname: '/dashboard' })
+    const { default: api } = await import('@/lib/api')
+
+    const rejectedFn = (api.interceptors.response as unknown as InterceptorManager).handlers[0].rejected
+    await expect(rejectedFn({ response: { status: 401 }, config: { url: '/reviews/' } })).rejects.toBeTruthy()
+    expect(window.location.href).toBe('/login')
+
+    Object.assign(window.location, { pathname: undefined })
   })
 })

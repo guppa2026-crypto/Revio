@@ -19,8 +19,13 @@ export default function LoginPage() {
     try {
       await api.post('/auth/login', { email, password })
       router.push('/dashboard')
-    } catch {
-      setError('Incorrect email or password. Please try again.')
+    } catch (err) {
+      const res = (err as { response?: { status?: number; data?: { detail?: unknown } } }).response
+      if (!res) setError("Couldn't reach the server. Check your connection and try again.")
+      else if (res.status === 401) setError('Incorrect email or password. Please try again.')
+      else if (res.status === 429) setError('Too many login attempts. Please wait a minute and try again.')
+      else if (typeof res.data?.detail === 'string') setError(res.data.detail)
+      else setError('Something went wrong on our side. Please try again in a moment.')
     } finally {
       setLoading(false)
     }

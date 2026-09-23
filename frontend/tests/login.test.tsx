@@ -68,6 +68,24 @@ describe('LoginPage', () => {
     expect(mockPush).not.toHaveBeenCalled()
   })
 
+  it.each([
+    [{ response: { status: 429 } }, /too many login attempts/i],
+    [{ response: { status: 500 } }, /something went wrong on our side/i],
+    [{ message: 'Network Error' }, /couldn't reach the server/i],
+  ])('shows the real reason when login fails with %o', async (rejection, message) => {
+    vi.mocked(api.post).mockRejectedValueOnce(rejection)
+    render(<LoginPage />)
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'user@example.com')
+    await userEvent.type(screen.getByLabelText('Password'), 'Secret1!')
+    fireEvent.submit(screen.getByRole('button', { name: /sign in/i }).closest('form')!)
+
+    await waitFor(() => {
+      expect(screen.getByText(message)).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/incorrect email or password/i)).not.toBeInTheDocument()
+  })
+
   it('disables the submit button while the request is in flight', async () => {
     let resolve!: (v: unknown) => void
     vi.mocked(api.post).mockReturnValueOnce(new Promise(r => { resolve = r }))
