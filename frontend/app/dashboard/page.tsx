@@ -166,9 +166,14 @@ export default function DashboardPage() {
       const list = res.data.accounts || []
       setAccounts(list)
       if (list.length === 0) setAccountsError('No Google Business accounts found. Make sure you connected the right Google account.')
-    } catch {
+    } catch (err) {
       setAccounts([])
-      setAccountsError('Google API access is pending approval. Once approved by Google, disconnect and reconnect to load your location.')
+      const detail = (err as { response?: { data?: { detail?: unknown } } }).response?.data?.detail
+      setAccountsError(
+        detail === 'Google not connected'
+          ? 'Google is not connected. Click "Connect Google Business" to link your Business Profile.'
+          : "Couldn't load your Google Business accounts. Try disconnecting and reconnecting Google — if it keeps happening, contact support."
+      )
     }
   }
 
