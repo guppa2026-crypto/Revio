@@ -240,7 +240,7 @@ export default function RegisterPage() {
             <p className="auth-legal">
               By creating an account you agree to our{' '}
               <a href="/legal">Terms of Service</a> and{' '}
-              <a href="/legal?tab=privacy">Privacy Policy</a>.
+              <a href="/privacy">Privacy Policy</a>.
             </p>
           </div>
         </div>

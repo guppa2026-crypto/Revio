@@ -370,7 +370,7 @@ export default function HomePage() {
             <div className="trust-card">
               <div className="trust-icon"><Lock size={20} /></div>
               <h3>Your data isn't the product</h3>
-              <p>We don't sell your data or use it for advertising, and we only use essential cookies. Payments are handled entirely by Stripe — we never see your card details. <a href="/legal">Read the policy</a>.</p>
+              <p>We don't sell your data or use it for advertising, and we only use essential cookies. Payments are handled entirely by Stripe — we never see your card details. <a href="/privacy">Read the policy</a>.</p>
             </div>
             <div className="trust-card">
               <div className="trust-icon"><MessageSquare size={20} /></div>
