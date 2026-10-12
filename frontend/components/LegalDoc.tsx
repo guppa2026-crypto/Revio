@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useState } from 'react'
 
 function Section({ num, title, children }: { num: string; title: string; children: React.ReactNode }) {
@@ -153,11 +154,11 @@ export default function LegalDoc({ initialTab }: { initialTab: 'terms' | 'privac
 
       {/* NAV */}
       <nav className="lg-nav">
-        <a className="lg-logo" href="/">
+        <Link className="lg-logo" href="/">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/revio-icon.png" alt="Revio" className="lg-logo-icon" />
           Revio
-        </a>
+        </Link>
         <div className="lg-nav-right">
           <a className="lg-nav-link" href="/contact">Contact</a>
           <a className="lg-nav-cta" href="/register">Get started</a>
@@ -232,7 +233,7 @@ export default function LegalDoc({ initialTab }: { initialTab: 'terms' | 'privac
 
             <Section num="6" title="Subscription, fees and payment">
               <ul>
-                <li>Access to the Service requires a paid subscription, currently £12.99 per month (inclusive of VAT), unless otherwise agreed with you in writing.</li>
+                <li>Access to the Service requires a paid subscription. We currently offer a Starter plan at £7.99 per month and a Pro plan at £14.99 per month (both inclusive of VAT), unless otherwise agreed with you in writing. The price of your chosen plan is shown at checkout before you pay.</li>
                 <li>Payment is processed securely by Stripe. By subscribing, you authorise us to charge your chosen payment method automatically on each renewal date until you cancel.</li>
                 <li>Your subscription renews automatically each month unless cancelled beforehand. Cancel any time from the billing page in your dashboard — cancellation takes effect at the end of the current billing period and you will not be charged again after that.</li>
                 <li><strong>We do not offer refunds</strong>, including for partial months, unused features, or periods where you did not use the Service, except where required by law.</li>

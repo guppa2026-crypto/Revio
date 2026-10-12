@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import api from '@/lib/api'
@@ -54,11 +55,11 @@ export default function ForgotPasswordPage() {
       <style>{css}</style>
       <div className="shell">
         <div className="box">
-          <a className="logo" href="/">
+          <Link className="logo" href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/revio-icon.png" alt="" />
             Revio
-          </a>
+          </Link>
 
           {sent ? (
             <div className="success">

@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Eye, EyeOff } from 'lucide-react'
@@ -146,11 +147,11 @@ export default function LoginPage() {
       <div className="auth">
 
         <div className="auth-brand">
-          <a className="auth-logo" href="/">
+          <Link className="auth-logo" href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/revio-icon.png" alt="" />
             Revio
-          </a>
+          </Link>
           <div className="auth-brand-body">
             <div className="auth-headline">
               Your Google reviews,<br />replied to <em>automatically.</em>

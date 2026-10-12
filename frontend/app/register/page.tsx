@@ -1,8 +1,10 @@
 'use client'
+import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Eye, EyeOff, Check } from 'lucide-react'
 import api from '@/lib/api'
+import { errorDetail } from '@/lib/errors'
 
 const FEATURES = [
   'AI replies written in your voice, not generic templates',
@@ -28,8 +30,8 @@ export default function RegisterPage() {
     try {
       await api.post('/auth/register', { name, email, password })
       router.push('/onboarding')
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.')
+    } catch (err) {
+      setError(errorDetail(err, 'Registration failed. Please try again.'))
     } finally {
       setLoading(false)
     }
@@ -153,11 +155,11 @@ export default function RegisterPage() {
       <div className="auth">
 
         <div className="auth-brand">
-          <a className="auth-logo" href="/">
+          <Link className="auth-logo" href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/revio-icon.png" alt="" />
             Revio
-          </a>
+          </Link>
           <div className="auth-brand-body">
             <div className="auth-headline">
               Get your reviews under<br />control — for less than<br />a coffee <em>a week.</em>
@@ -170,7 +172,7 @@ export default function RegisterPage() {
                 </div>
               ))}
             </div>
-            <div className="auth-price">£12.99/month · no setup fee · cancel anytime</div>
+            <div className="auth-price">From £7.99/month · no setup fee · cancel anytime</div>
           </div>
           <div className="auth-foot">© 2026 Revio · reviodigital.uk</div>
         </div>

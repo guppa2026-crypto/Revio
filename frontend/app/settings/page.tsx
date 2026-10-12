@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LayoutDashboard, CreditCard, Settings, LogOut, Menu, BarChart2 } from 'lucide-react'
 import api from '@/lib/api'
+import { errorDetail } from '@/lib/errors'
 
 const TONE_PRESETS = [
   { label: 'Professional', value: 'Keep replies formal and professional. Avoid casual language. Use complete sentences and a respectful, business-like tone at all times.' },
@@ -67,8 +68,8 @@ export default function SettingsPage() {
       setPwSuccess('Password updated successfully.')
       setCurrentPassword('')
       setNewPassword('')
-    } catch (err: any) {
-      setPwError(err.response?.data?.detail || 'Failed to update password.')
+    } catch (err) {
+      setPwError(errorDetail(err, 'Failed to update password.'))
     } finally {
       setPwLoading(false)
     }

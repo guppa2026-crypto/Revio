@@ -6,6 +6,7 @@ import {
   AlertTriangle, LayoutDashboard, RefreshCw, X, Menu, Search, TrendingUp, BarChart2,
 } from 'lucide-react'
 import api from '@/lib/api'
+import { errorDetail, errorStatus } from '@/lib/errors'
 import RatingGoal from '@/components/RatingGoal'
 
 type BillingInfo = {
@@ -13,6 +14,9 @@ type BillingInfo = {
   is_trial: boolean
   trial_days_remaining: number
 }
+
+type GoogleAccount = { name: string; accountName?: string }
+type GoogleLocation = { name: string; title?: string }
 
 type Review = {
   id: string
@@ -43,8 +47,13 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
 }
 
+// The API sends naive UTC timestamps (no "Z"); without this, browsers read them as local time
+function parseUtc(dateStr: string) {
+  return new Date(/([zZ]|[+-]\d\d:\d\d)$/.test(dateStr) ? dateStr : dateStr + 'Z')
+}
+
 function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime()
+  const diff = Date.now() - parseUtc(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
   if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
@@ -53,7 +62,7 @@ function timeAgo(dateStr: string) {
 }
 
 function timeUntil(dateStr: string) {
-  const diff = new Date(dateStr).getTime() - Date.now()
+  const diff = parseUtc(dateStr).getTime() - Date.now()
   if (diff <= 0) return 'any moment'
   const hrs = Math.floor(diff / 3600000)
   if (hrs < 1) return 'less than 1h'
@@ -101,13 +110,14 @@ export default function DashboardPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [billingInfo, setBillingInfo] = useState<BillingInfo | null>(null)
+  const [now, setNow] = useState(() => Date.now())
 
   // Location picker
   const [showLocationPicker, setShowLocationPicker] = useState(false)
-  const [accounts, setAccounts] = useState<any[]>([])
+  const [accounts, setAccounts] = useState<GoogleAccount[]>([])
   const [accountsError, setAccountsError] = useState('')
   const [selectedAccount, setSelectedAccount] = useState('')
-  const [locations, setLocations] = useState<any[]>([])
+  const [locations, setLocations] = useState<GoogleLocation[]>([])
   const [selectedLocation, setSelectedLocation] = useState('')
   const [loadingLocations, setLoadingLocations] = useState(false)
   const [savingLocation, setSavingLocation] = useState(false)
@@ -126,38 +136,13 @@ export default function DashboardPage() {
     try {
       const res = await api.get('/reviews/')
       setReviews(res.data.reviews || res.data)
-    } catch (err: any) {
-      if (err.response?.status === 403) setLocked(true)
+    } catch (err) {
+      if (errorStatus(err) === 403) setLocked(true)
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
   }, [])
-
-  useEffect(() => {
-    fetchReviews()
-    api.get('/billing/status').then(r => setBillingInfo(r.data)).catch(() => {})
-    if (typeof window !== 'undefined' && window.location.search.includes('google=connected')) {
-      setShowLocationPicker(true)
-      loadAccounts()
-    }
-  }, [fetchReviews])
-
-  // Silent background refresh every 60s so new Google reviews appear automatically
-  useEffect(() => {
-    const id = setInterval(() => fetchReviews(), 60000)
-    return () => clearInterval(id)
-  }, [fetchReviews])
-
-  // Fast poll every 3s while any review is still being AI-processed
-  useEffect(() => {
-    if (!reviews.some(r => r.status === 'processing')) return
-    const id = setInterval(() => fetchReviews(), 3000)
-    return () => clearInterval(id)
-  }, [reviews, fetchReviews])
-
-  // Reset pagination when filter or search changes
-  useEffect(() => { setDisplayCount(PAGE_SIZE) }, [filter, searchQuery])
 
   const loadAccounts = async () => {
     setAccountsError('')
@@ -168,14 +153,54 @@ export default function DashboardPage() {
       if (list.length === 0) setAccountsError('No Google Business accounts found. Make sure you connected the right Google account.')
     } catch (err) {
       setAccounts([])
-      const detail = (err as { response?: { data?: { detail?: unknown } } }).response?.data?.detail
       setAccountsError(
-        detail === 'Google not connected'
+        errorDetail(err, '') === 'Google not connected'
           ? 'Google is not connected. Click "Connect Google Business" to link your Business Profile.'
           : "Couldn't load your Google Business accounts. Try disconnecting and reconnecting Google — if it keeps happening, contact support."
       )
     }
   }
+
+  useEffect(() => {
+    // Initial data load from the API, and reacting to the OAuth redirect's query string
+    // (only readable in the browser) — both are external state, which is what effects are for
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchReviews()
+    api.get('/billing/status').then(r => setBillingInfo(r.data)).catch(() => {})
+    const googleResult = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('google')
+      : null
+    if (googleResult === 'connected') {
+      setShowLocationPicker(true)
+      loadAccounts()
+    } else if (googleResult === 'error' || googleResult === 'cancelled') {
+      window.history.replaceState({}, '', '/dashboard')
+      if (googleResult === 'error') {
+        alert('Google connection failed or the link expired. Please click "Connect Google Business" and try again.')
+      }
+    }
+  }, [fetchReviews])
+
+  // Silent background refresh every 60s so new Google reviews appear automatically
+  useEffect(() => {
+    const id = setInterval(() => { fetchReviews(); setNow(Date.now()) }, 60000)
+    return () => clearInterval(id)
+  }, [fetchReviews])
+
+  // Poll every 5s while a recently imported review is still being AI-processed. Older ones
+  // are released by the server's sweep, so don't keep hammering the API for them.
+  useEffect(() => {
+    const processingRecently = reviews.some(
+      r => r.status === 'processing' && Date.now() - parseUtc(r.created_at).getTime() < 5 * 60000,
+    )
+    if (!processingRecently) return
+    const id = setInterval(() => fetchReviews(), 5000)
+    return () => clearInterval(id)
+  }, [reviews, fetchReviews])
+
+  // Reset pagination whenever the filter or search changes
+  const changeFilter = (f: string) => { setFilter(f); setDisplayCount(PAGE_SIZE) }
+  const changeSearch = (q: string) => { setSearchQuery(q); setDisplayCount(PAGE_SIZE) }
 
   const handleAccountChange = async (accountId: string) => {
     setSelectedAccount(accountId)
@@ -210,8 +235,7 @@ export default function DashboardPage() {
       if (res.data.status !== 'posted') alert(res.data.message)
     } catch (err) {
       // Keep the edit open so the user's text isn't lost
-      const detail = (err as { response?: { data?: { detail?: unknown } } }).response?.data?.detail
-      alert(typeof detail === 'string' ? detail : 'Failed to post reply. It was not posted — please try again.')
+      alert(errorDetail(err, 'Failed to post reply. It was not posted — please try again.'))
     } finally {
       setApproving(null)
       await fetchReviews()
@@ -219,12 +243,20 @@ export default function DashboardPage() {
   }
 
   const handleReject = async (id: string) => {
-    await api.post('/reviews/' + id + '/reject')
+    try {
+      await api.post('/reviews/' + id + '/reject')
+    } catch (err) {
+      alert(errorDetail(err, 'Failed to reject reply. Please try again.'))
+    }
     fetchReviews()
   }
 
   const handleCancelSchedule = async (id: string) => {
-    await api.post('/reviews/' + id + '/cancel-schedule')
+    try {
+      await api.post('/reviews/' + id + '/cancel-schedule')
+    } catch (err) {
+      alert(errorDetail(err, 'Failed to cancel the scheduled reply. Please try again.'))
+    }
     fetchReviews()
   }
 
@@ -234,6 +266,9 @@ export default function DashboardPage() {
       const res = await api.post('/reviews/' + id + '/regenerate')
       setReviews(prev => prev.map(r => r.id === id ? { ...r, generated_reply: res.data.generated_reply } : r))
       setEditing(e => { const n = { ...e }; delete n[id]; return n })
+    } catch (err) {
+      alert(errorDetail(err, 'Failed to regenerate the reply. Please try again.'))
+      fetchReviews()
     } finally { setRegenerating(null) }
   }
 
@@ -250,8 +285,8 @@ export default function DashboardPage() {
       await api.post('/reviews/import', { reviewer_name: importName, rating: importRating, review_text: importText })
       setShowImport(false); setImportName(''); setImportRating(5); setImportText('')
       await fetchReviews()
-    } catch (err: any) {
-      setImportError(err.response?.data?.detail || 'Failed to import review.')
+    } catch (err) {
+      setImportError(errorDetail(err, 'Failed to import review.'))
     } finally { setImportLoading(false) }
   }
 
@@ -261,9 +296,9 @@ export default function DashboardPage() {
     : 0
   const needsActionCount = reviews.filter(r => r.status === 'pending' || r.status === 'flagged').length
   const scheduledCount = reviews.filter(r => r.status === 'scheduled').length
-  const thisWeek = reviews.filter(r => Date.now() - new Date(r.created_at).getTime() < 7 * 86400000).length
+  const thisWeek = reviews.filter(r => now - parseUtc(r.created_at).getTime() < 7 * 86400000).length
   const responseRate = reviews.length
-    ? Math.round((reviews.filter(r => ['posted', 'approved', 'scheduled'].includes(r.status)).length / reviews.length) * 100)
+    ? Math.round((reviews.filter(r => ['posted', 'approved'].includes(r.status)).length / reviews.length) * 100)
     : 0
 
   // Filtered + searched list
@@ -589,11 +624,11 @@ export default function DashboardPage() {
                       <div className="location-selects">
                         <select className="loc-select" value={selectedAccount} onChange={e => handleAccountChange(e.target.value)}>
                           <option value="">Select account…</option>
-                          {accounts.map((a: any) => <option key={a.name} value={a.name}>{a.accountName || a.name}</option>)}
+                          {accounts.map(a => <option key={a.name} value={a.name}>{a.accountName || a.name}</option>)}
                         </select>
                         <select className="loc-select" value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} disabled={!locations.length}>
                           <option value="">{loadingLocations ? 'Loading…' : 'Select location…'}</option>
-                          {locations.map((l: any) => <option key={l.name} value={l.name}>{l.title || l.name}</option>)}
+                          {locations.map(l => <option key={l.name} value={l.name}>{l.title || l.name}</option>)}
                         </select>
                         <button className="btn-save-loc" onClick={handleSaveLocation} disabled={!selectedAccount || !selectedLocation || savingLocation}>
                           {savingLocation ? 'Saving…' : 'Confirm'}
@@ -658,12 +693,12 @@ export default function DashboardPage() {
                       type="text"
                       placeholder="Search by name or review…"
                       value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
+                      onChange={e => changeSearch(e.target.value)}
                     />
                   </div>
                   <div className="filter-tabs">
                     {FILTERS.map(f => (
-                      <button key={f} className={`filter-tab${filter === f ? ' active' : ''}`} onClick={() => setFilter(f)}>
+                      <button key={f} className={`filter-tab${filter === f ? ' active' : ''}`} onClick={() => changeFilter(f)}>
                         {FILTER_LABELS[f]}
                         {f === 'needs-action' && needsActionCount > 0 && (
                           <span className="filter-tab-badge">{needsActionCount}</span>

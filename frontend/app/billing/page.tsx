@@ -9,6 +9,7 @@ type BillingStatus = {
   is_subscribed: boolean
   subscription_status: string | null
   current_period_end: number | null
+  cancel_at_period_end: boolean
   is_trial: boolean
   trial_days_remaining: number
   plan: 'starter' | 'pro' | null
@@ -35,19 +36,6 @@ export default function BillingPage() {
   const [message, setMessage] = useState('')
   const [messageSuccess, setMessageSuccess] = useState(true)
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('subscription') === 'success') {
-      setMessage('Subscription activated — you\'re all set.')
-      setMessageSuccess(true)
-    }
-    if (params.get('subscription') === 'cancelled') {
-      setMessage('Checkout cancelled — no changes made.')
-      setMessageSuccess(false)
-    }
-    fetchStatus()
-  }, [])
-
   const fetchStatus = async () => {
     try {
       const res = await api.get('/billing/status')
@@ -64,13 +52,30 @@ export default function BillingPage() {
     }
   }
 
+  useEffect(() => {
+    // Checkout redirect result lives in the query string, only readable in the browser
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('subscription') === 'success') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMessage('Subscription activated — you\'re all set.')
+      setMessageSuccess(true)
+    }
+    if (params.get('subscription') === 'cancelled') {
+      setMessage('Checkout cancelled — no changes made.')
+      setMessageSuccess(false)
+    }
+    fetchStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, [])
+
   const handleSubscribe = async (plan: 'starter' | 'pro') => {
     setSubscribing(plan)
     try {
       const res = await api.post('/billing/create-checkout', { plan })
       window.location.href = res.data.checkout_url
-    } catch {
-      setMessage('Something went wrong. Please try again.')
+    } catch (err) {
+      const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined
+      setMessage(typeof detail === 'string' ? detail : 'Something went wrong. Please try again.')
       setMessageSuccess(false)
       setSubscribing(null)
     }
@@ -93,11 +98,12 @@ export default function BillingPage() {
   }
 
   const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel your subscription?')) return
+    if (!confirm('Cancel your subscription? You keep full access until the end of your current billing period.')) return
     setCancelling(true)
     try {
-      await api.post('/billing/cancel')
-      setMessage('Subscription cancelled.')
+      const res = await api.post('/billing/cancel')
+      const end = res.data.current_period_end
+      setMessage(end ? `Subscription cancelled — you have access until ${formatDate(end)}.` : res.data.message)
       setMessageSuccess(false)
       fetchStatus()
     } catch {
@@ -458,9 +464,11 @@ export default function BillingPage() {
                         </span>
                       </div>
                       {status?.current_period_end && (
-                        <div className="bl-renewal">Renews {formatDate(status.current_period_end)}</div>
+                        <div className="bl-renewal">
+                          {status.cancel_at_period_end ? 'Ends' : 'Renews'} {formatDate(status.current_period_end)}
+                        </div>
                       )}
-                      {status?.subscription_status !== 'comp' && (
+                      {status?.subscription_status !== 'comp' && !status?.cancel_at_period_end && (
                         <>
                           <div className="bl-divider" />
                           <button className="bl-btn bl-btn-cancel" disabled={cancelling} onClick={handleCancel}>

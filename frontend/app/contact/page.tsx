@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useState } from 'react'
 
 export default function ContactPage() {
@@ -40,7 +41,7 @@ export default function ContactPage() {
       <style>{css}</style>
       <div className="shell">
         <nav className="nav">
-          <a className="nav-logo" href="/"><span className="nav-dot" />Revio</a>
+          <Link className="nav-logo" href="/"><span className="nav-dot" />Revio</Link>
         </nav>
         <div className="wrap">
           <div className="title">Get in touch</div>

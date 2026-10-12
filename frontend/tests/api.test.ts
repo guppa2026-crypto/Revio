@@ -35,7 +35,9 @@ describe('api client', () => {
     const { default: api } = await import('@/lib/api')
 
     // Retrieve the rejection handler registered by the interceptor
-    const handler = (api.interceptors.response as any).handlers?.[0]
+    const handler = (api.interceptors.response as unknown as {
+      handlers?: { rejected?: (e: unknown) => unknown; onRejected?: (e: unknown) => unknown }[]
+    }).handlers?.[0]
     const rejectedFn = handler?.rejected ?? handler?.onRejected
 
     if (typeof rejectedFn === 'function') {

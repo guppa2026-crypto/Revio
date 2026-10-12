@@ -1,8 +1,10 @@
 'use client'
+import Link from 'next/link'
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import api from '@/lib/api'
+import { errorDetail } from '@/lib/errors'
 
 function ResetPasswordForm() {
   const router = useRouter()
@@ -28,8 +30,8 @@ function ResetPasswordForm() {
       await api.post('/auth/reset-password', { token, new_password: password })
       setDone(true)
       setTimeout(() => router.push('/login'), 3000)
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Reset failed. The link may have expired.')
+    } catch (err) {
+      setError(errorDetail(err, 'Reset failed. The link may have expired.'))
     } finally {
       setLoading(false)
     }
@@ -89,11 +91,11 @@ function ResetPasswordForm() {
       <style>{css}</style>
       <div className="shell">
         <div className="box">
-          <a className="logo" href="/">
+          <Link className="logo" href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/revio-icon.png" alt="" />
             Revio
-          </a>
+          </Link>
 
           {done ? (
             <div className="success">

@@ -51,7 +51,7 @@ export default function AdminPage() {
         else router.push('/login')
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [router])
 
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
