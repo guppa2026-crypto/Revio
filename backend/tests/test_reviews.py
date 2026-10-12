@@ -207,3 +207,73 @@ def test_admin_customers_pagination_format(client, make_user):
     assert "total" in data
     assert "customers" in data
     assert isinstance(data["customers"], list)
+
+
+# ---------------------------------------------------------------------------
+# AI pipeline failures never leave a review stuck in 'processing'
+# ---------------------------------------------------------------------------
+
+def test_import_ai_failure_moves_review_to_pending(subscribed_client):
+    import json
+    from unittest.mock import patch
+    with patch(
+        "app.services.review_processor.analyze_review",
+        side_effect=json.JSONDecodeError("bad", "not json", 0),
+    ):
+        res = subscribed_client.post(
+            "/reviews/import",
+            json={"reviewer_name": "Eve", "rating": 2, "review_text": "Slow."},
+        )
+    data = subscribed_client.get(f"/reviews/{res.json()['id']}").json()
+    assert data["status"] == "pending"
+    assert data["generated_reply"] is None
+
+
+def test_scheduler_releases_stale_processing(client, make_user, db):
+    from unittest.mock import patch
+    import app.database
+    from app.models.review import Review
+    from app.tasks.scheduler import fire_scheduled_replies
+
+    tenant, _ = make_user(email="stale@test.com", is_subscribed=True)
+    old = Review(tenant_id=tenant.id, google_review_id="g-old", rating=4, review_text="x",
+                 review_date=datetime.now(timezone.utc), status="processing",
+                 created_at=datetime.now(timezone.utc) - timedelta(hours=1))
+    new = Review(tenant_id=tenant.id, google_review_id="g-new", rating=4, review_text="x",
+                 review_date=datetime.now(timezone.utc), status="processing")
+    db.add_all([old, new])
+    db.commit()
+
+    with patch("app.tasks.scheduler.SessionLocal", app.database.SessionLocal):
+        fire_scheduled_replies()
+
+    db.refresh(old)
+    db.refresh(new)
+    assert old.status == "pending"
+    assert new.status == "processing"  # may still be running
+
+
+def test_google_synced_review_respects_plan_limit(make_user, db):
+    """Starter tenants at their monthly cap get no AI draft for polled reviews."""
+    from unittest.mock import patch
+    from app.models.review import Review
+    from app.services.review_processor import run_review_processing
+    from app.utils.plan_limits import STARTER_REPLY_LIMIT
+
+    tenant, _ = make_user(email="starter@test.com", is_subscribed=True)
+    tenant.plan = "starter"
+    for i in range(STARTER_REPLY_LIMIT):
+        db.add(Review(tenant_id=tenant.id, google_review_id=f"g-{i}", rating=5, review_text="x",
+                      review_date=datetime.now(timezone.utc), status="posted", generated_reply="r"))
+    polled = Review(tenant_id=tenant.id, google_review_id="g-polled", rating=5, review_text="x",
+                    review_date=datetime.now(timezone.utc), status="processing")
+    db.add(polled)
+    db.commit()
+
+    with patch("app.services.review_processor.analyze_review") as analyze:
+        run_review_processing(str(polled.id))
+
+    analyze.assert_not_called()
+    db.refresh(polled)
+    assert polled.status == "pending"
+    assert polled.generated_reply is None

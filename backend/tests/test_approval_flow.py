@@ -1,7 +1,6 @@
 """Tests for approve & post: dashboard approval, email approval, and the scheduler's auto-post."""
-import asyncio
 from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -50,8 +49,8 @@ def make_review(db, connected):
 def google():
     """Mock the Google calls at the reviews router's call site."""
     with (
-        patch("app.routers.reviews.refresh_access_token", new=AsyncMock(return_value="fresh-token")),
-        patch("app.routers.reviews.post_reply", new=AsyncMock(return_value={"comment": "ok"})) as post,
+        patch("app.routers.reviews.refresh_access_token", new=MagicMock(return_value="fresh-token")),
+        patch("app.routers.reviews.post_reply", new=MagicMock(return_value={"comment": "ok"})) as post,
     ):
         yield post
 
@@ -72,7 +71,7 @@ def test_pending_approve_posts_to_google(connected, make_review, google):
 
     assert res.status_code == 200
     assert res.json()["status"] == "posted"
-    google.assert_awaited_once_with("fresh-token", "accounts/1", "locations/2", "g-review-1", "AI draft reply")
+    google.assert_called_once_with("fresh-token", "accounts/1", "locations/2", "g-review-1", "AI draft reply")
     data = _get(client, review_id)
     assert data["status"] == "posted"
     assert data["posted_at"] is not None
@@ -85,7 +84,7 @@ def test_flagged_approve_posts_to_google(connected, make_review, google):
     res = client.post(f"/reviews/{review_id}/approve")
 
     assert res.status_code == 200
-    google.assert_awaited_once()
+    google.assert_called_once()
     assert _get(client, review_id)["status"] == "posted"
 
 
@@ -96,7 +95,7 @@ def test_edited_reply_is_posted_and_stored(connected, make_review, google):
     res = client.post(f"/reviews/{review_id}/approve", json={"reply": "  Owner's edited reply.  "})
 
     assert res.status_code == 200
-    assert google.await_args.args[4] == "Owner's edited reply."
+    assert google.call_args.args[4] == "Owner's edited reply."
     assert _get(client, review_id)["generated_reply"] == "Owner's edited reply."
 
 
@@ -107,7 +106,7 @@ def test_edited_scheduled_reply_post_now(connected, make_review, google):
     res = client.post(f"/reviews/{review_id}/approve", json={"reply": "Edited thanks!"})
 
     assert res.status_code == 200
-    assert google.await_args.args[4] == "Edited thanks!"
+    assert google.call_args.args[4] == "Edited thanks!"
     data = _get(client, review_id)
     assert data["status"] == "posted"
     assert data["reply_at"] is None
@@ -120,7 +119,7 @@ def test_empty_edited_reply_rejected(connected, make_review, google):
     res = client.post(f"/reviews/{review_id}/approve", json={"reply": "   "})
 
     assert res.status_code == 400
-    google.assert_not_awaited()
+    google.assert_not_called()
     assert _get(client, review_id)["status"] == "pending"
 
 
@@ -129,8 +128,8 @@ def test_google_failure_is_not_reported_as_posted(connected, make_review):
     review_id = make_review(status="flagged")
 
     with (
-        patch("app.routers.reviews.refresh_access_token", new=AsyncMock(return_value="t")),
-        patch("app.routers.reviews.post_reply", new=AsyncMock(side_effect=Exception("Failed to post reply: 403"))),
+        patch("app.routers.reviews.refresh_access_token", new=MagicMock(return_value="t")),
+        patch("app.routers.reviews.post_reply", new=MagicMock(side_effect=Exception("Failed to post reply: 403"))),
     ):
         res = client.post(f"/reviews/{review_id}/approve", json={"reply": "Edited text"})
 
@@ -146,8 +145,8 @@ def test_google_failure_on_scheduled_does_not_resume_auto_post(connected, make_r
     review_id = make_review(status="scheduled", rating=5, reply_at=datetime.now(timezone.utc) + timedelta(hours=20))
 
     with (
-        patch("app.routers.reviews.refresh_access_token", new=AsyncMock(return_value="t")),
-        patch("app.routers.reviews.post_reply", new=AsyncMock(side_effect=Exception("boom"))),
+        patch("app.routers.reviews.refresh_access_token", new=MagicMock(return_value="t")),
+        patch("app.routers.reviews.post_reply", new=MagicMock(side_effect=Exception("boom"))),
     ):
         res = client.post(f"/reviews/{review_id}/approve")
 
@@ -164,7 +163,7 @@ def test_retry_after_success_does_not_post_twice(connected, make_review, google)
 
     assert first.status_code == 200
     assert second.status_code == 409
-    google.assert_awaited_once()
+    google.assert_called_once()
 
 
 def test_approve_without_google_connection_fails(client, make_user, db, google):
@@ -180,7 +179,7 @@ def test_approve_without_google_connection_fails(client, make_user, db, google):
     res = client.post(f"/reviews/{review.id}/approve")
 
     assert res.status_code == 400
-    google.assert_not_awaited()
+    google.assert_not_called()
     assert _get(client, review.id)["status"] == "pending"
 
 
@@ -192,7 +191,7 @@ def test_manual_review_approved_without_google_call(connected, make_review, goog
 
     assert res.status_code == 200
     assert res.json()["status"] == "approved"
-    google.assert_not_awaited()
+    google.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -209,7 +208,7 @@ def test_email_link_get_does_not_post(connected, make_review, google):
 
     assert res.status_code == 200
     assert "Approve &amp; post to Google" in res.text
-    google.assert_not_awaited()
+    google.assert_not_called()
     assert _get(client, review_id)["status"] == "pending"
 
 
@@ -222,7 +221,7 @@ def test_email_approval_posts_to_google(connected, make_review, google):
 
     assert res.status_code == 200
     assert "Reply posted" in res.text
-    google.assert_awaited_once()
+    google.assert_called_once()
     assert _get(client, review_id)["status"] == "posted"
 
 
@@ -232,8 +231,8 @@ def test_email_approval_google_failure(connected, make_review):
     token = generate_approval_token(review_id)
 
     with (
-        patch("app.routers.reviews.refresh_access_token", new=AsyncMock(return_value="t")),
-        patch("app.routers.reviews.post_reply", new=AsyncMock(side_effect=Exception("boom"))),
+        patch("app.routers.reviews.refresh_access_token", new=MagicMock(return_value="t")),
+        patch("app.routers.reviews.post_reply", new=MagicMock(side_effect=Exception("boom"))),
     ):
         res = client.post(f"/reviews/approve-via-email?token={token}")
 
@@ -251,13 +250,13 @@ def test_email_approval_retry_does_not_post_twice(connected, make_review, google
     res = client.post(f"/reviews/approve-via-email?token={token}")
 
     assert "Already actioned" in res.text
-    google.assert_awaited_once()
+    google.assert_called_once()
 
 
 def test_email_approval_invalid_token(client, google):
     res = client.post("/reviews/approve-via-email?token=bad")
     assert res.status_code == 400
-    google.assert_not_awaited()
+    google.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -269,8 +268,8 @@ def scheduler_google():
     import app.database  # conftest points SessionLocal at the test DB
     with (
         patch("app.tasks.scheduler.SessionLocal", app.database.SessionLocal),
-        patch("app.tasks.scheduler.refresh_access_token", new=AsyncMock(return_value="t")),
-        patch("app.tasks.scheduler.post_reply", new=AsyncMock(return_value={})) as post,
+        patch("app.tasks.scheduler.refresh_access_token", new=MagicMock(return_value="t")),
+        patch("app.tasks.scheduler.post_reply", new=MagicMock(return_value={})) as post,
     ):
         yield post
 
@@ -281,9 +280,9 @@ def test_scheduler_auto_posts_due_low_risk_reply(connected, make_review, schedul
     review_id = make_review(status="scheduled", rating=5, risk_level="low",
                             reply_at=datetime.now(timezone.utc) - timedelta(minutes=1))
 
-    asyncio.run(fire_scheduled_replies())
+    fire_scheduled_replies()
 
-    scheduler_google.assert_awaited_once()
+    scheduler_google.assert_called_once()
     assert _get(client, review_id)["status"] == "posted"
 
 
@@ -294,9 +293,9 @@ def test_scheduler_never_posts_flagged_or_pending(connected, make_review, schedu
     flagged_id = make_review(status="flagged", risk_level="high", google_review_id="g-f", reply_at=past)
     pending_id = make_review(status="pending", risk_level="medium", google_review_id="g-p", reply_at=past)
 
-    asyncio.run(fire_scheduled_replies())
+    fire_scheduled_replies()
 
-    scheduler_google.assert_not_awaited()
+    scheduler_google.assert_not_called()
     assert _get(client, flagged_id)["status"] == "flagged"
     assert _get(client, pending_id)["status"] == "pending"
 
@@ -308,9 +307,122 @@ def test_cancelled_schedule_is_not_auto_posted(connected, make_review, scheduler
                             reply_at=datetime.now(timezone.utc) + timedelta(hours=20))
 
     assert client.post(f"/reviews/{review_id}/cancel-schedule").status_code == 200
-    asyncio.run(fire_scheduled_replies())
+    fire_scheduled_replies()
 
-    scheduler_google.assert_not_awaited()
+    scheduler_google.assert_not_called()
     data = _get(client, review_id)
     assert data["status"] == "pending"
     assert data["reply_at"] is None
+
+
+
+def test_scheduler_skips_review_cancelled_mid_run(connected, make_review, scheduler_google):
+    """Owner cancels after the job loaded the due list but before it posts — nothing is posted."""
+    import sqlalchemy.orm
+    import app.database
+    from app.models.tenant import Tenant
+    from app.tasks.scheduler import fire_scheduled_replies
+    client, _ = connected
+    review_id = make_review(status="scheduled", rating=5,
+                            reply_at=datetime.now(timezone.utc) - timedelta(minutes=1))
+
+    real_first = sqlalchemy.orm.Query.first
+    cancelled = {"done": False}
+
+    def first_then_owner_cancels(query):
+        result = real_first(query)
+        # The tenant lookup sits between loading due reviews and claiming one
+        if isinstance(result, Tenant) and not cancelled["done"]:
+            cancelled["done"] = True
+            other = app.database.SessionLocal()
+            other.query(Review).update({"status": "pending", "reply_at": None}, synchronize_session=False)
+            other.commit()
+            other.close()
+        return result
+
+    with patch.object(sqlalchemy.orm.Query, "first", first_then_owner_cancels):
+        fire_scheduled_replies()
+
+    assert cancelled["done"]
+    scheduler_google.assert_not_called()
+    assert _get(client, review_id)["status"] == "pending"
+
+
+def test_scheduler_failure_returns_review_to_scheduled(connected, make_review):
+    import app.database
+    from app.tasks.scheduler import fire_scheduled_replies
+    client, _ = connected
+    review_id = make_review(status="scheduled", rating=5,
+                            reply_at=datetime.now(timezone.utc) - timedelta(minutes=1))
+
+    with (
+        patch("app.tasks.scheduler.SessionLocal", app.database.SessionLocal),
+        patch("app.tasks.scheduler.refresh_access_token", new=MagicMock(return_value="t")),
+        patch("app.tasks.scheduler.post_reply", new=MagicMock(side_effect=Exception("503"))),
+    ):
+        fire_scheduled_replies()
+
+    assert _get(client, review_id)["status"] == "scheduled"  # retried on the next run
+
+
+def test_stuck_approved_released_but_manual_kept(connected, make_review, db, scheduler_google):
+    from app.tasks.scheduler import fire_scheduled_replies
+    client, _ = connected
+    old = datetime.now(timezone.utc) - timedelta(hours=2)
+    stuck_id = make_review(status="approved", google_review_id="g-stuck", updated_at=old)
+    manual_id = make_review(status="approved", google_review_id="manual_x", updated_at=old)
+    fresh_id = make_review(status="approved", google_review_id="g-fresh")
+
+    fire_scheduled_replies()
+
+    assert _get(client, stuck_id)["status"] == "pending"
+    assert _get(client, manual_id)["status"] == "approved"
+    assert _get(client, fresh_id)["status"] == "approved"
+
+
+# ---------------------------------------------------------------------------
+# Reject / regenerate only act on replies that haven't been posted
+# ---------------------------------------------------------------------------
+
+def test_reject_posted_review_is_refused(connected, make_review):
+    client, _ = connected
+    review_id = make_review(status="posted")
+
+    res = client.post(f"/reviews/{review_id}/reject")
+
+    assert res.status_code == 409
+    assert _get(client, review_id)["status"] == "posted"
+
+
+def test_reject_pending_review(connected, make_review):
+    client, _ = connected
+    review_id = make_review(status="pending")
+
+    assert client.post(f"/reviews/{review_id}/reject").status_code == 200
+    assert _get(client, review_id)["status"] == "rejected"
+
+
+def test_regenerate_posted_review_is_refused(connected, make_review):
+    client, _ = connected
+    review_id = make_review(status="posted", reply="Live reply")
+
+    with patch("app.services.ai_service.generate_reply", return_value="new") as gen:
+        res = client.post(f"/reviews/{review_id}/regenerate")
+
+    assert res.status_code == 409
+    gen.assert_not_called()
+    assert _get(client, review_id)["generated_reply"] == "Live reply"
+
+
+def test_regenerate_uses_tone_instructions(connected, make_review, db):
+    client, tenant = connected
+    tenant.tone_instructions = "Sign off as Chef Sam"
+    db.commit()
+    review_id = make_review(status="pending")
+
+    with patch("app.services.ai_service.generate_reply", return_value="new draft") as gen:
+        res = client.post(f"/reviews/{review_id}/regenerate")
+
+    assert res.status_code == 200
+    assert gen.call_args.kwargs["tone_instructions"] == "Sign off as Chef Sam"
+    assert _get(client, review_id)["generated_reply"] == "new draft"

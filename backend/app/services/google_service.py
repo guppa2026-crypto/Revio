@@ -13,7 +13,7 @@ BUSINESS_INFO_BASE = "https://mybusinessbusinessinformation.googleapis.com/v1"  
 REVIEWS_BASE = "https://mybusiness.googleapis.com/v4"
 
 
-async def refresh_access_token(tenant: Tenant, db: Session) -> str:
+def refresh_access_token(tenant: Tenant, db: Session) -> str:
     """Return a valid Google access token, refreshing if expired or expiry unknown."""
     now = datetime.now(timezone.utc)
 
@@ -27,8 +27,8 @@ async def refresh_access_token(tenant: Tenant, db: Session) -> str:
     if not tenant.google_refresh_token:
         raise Exception("No refresh token available — user must reconnect Google")
 
-    async with httpx.AsyncClient() as client:
-        res = await client.post(GOOGLE_TOKEN_URL, data={
+    with httpx.Client() as client:
+        res = client.post(GOOGLE_TOKEN_URL, data={
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_CLIENT_SECRET,
             "refresh_token": tenant.google_refresh_token,
@@ -46,9 +46,9 @@ async def refresh_access_token(tenant: Tenant, db: Session) -> str:
     return tenant.google_access_token
 
 
-async def get_accounts(access_token: str) -> list:
-    async with httpx.AsyncClient() as client:
-        res = await client.get(
+def get_accounts(access_token: str) -> list:
+    with httpx.Client() as client:
+        res = client.get(
             f"{GMB_BASE}/accounts",
             headers={"Authorization": f"Bearer {access_token}"},
         )
@@ -58,9 +58,9 @@ async def get_accounts(access_token: str) -> list:
     return data.get("accounts", [])
 
 
-async def get_locations(access_token: str, account_id: str) -> list:
-    async with httpx.AsyncClient() as client:
-        res = await client.get(
+def get_locations(access_token: str, account_id: str) -> list:
+    with httpx.Client() as client:
+        res = client.get(
             f"{BUSINESS_INFO_BASE}/{account_id}/locations",
             headers={"Authorization": f"Bearer {access_token}"},
             params={"readMask": "name,title,storefrontAddress"},
@@ -71,22 +71,46 @@ async def get_locations(access_token: str, account_id: str) -> list:
     return data.get("locations", [])
 
 
-async def get_reviews(access_token: str, account_id: str, location_id: str) -> list:
-    async with httpx.AsyncClient() as client:
-        res = await client.get(
-            f"{REVIEWS_BASE}/{account_id}/{location_id}/reviews",
-            headers={"Authorization": f"Bearer {access_token}"},
-            params={"pageSize": 50},
-        )
-    data = res.json()
-    if "error" in data:
-        raise Exception(f"Failed to fetch reviews: {data['error']}")
-    return data.get("reviews", [])
+REVIEWS_PAGE_SIZE = 50
+REVIEWS_MAX_PAGES = 10  # caps the first sync of a large backlog at 500 reviews
 
 
-async def post_reply(access_token: str, account_id: str, location_id: str, review_id: str, reply_text: str) -> dict:
-    async with httpx.AsyncClient() as client:
-        res = await client.put(
+def get_reviews(
+    access_token: str, account_id: str, location_id: str, known_ids: set[str] | None = None,
+) -> list:
+    """Fetch reviews, newest first (Google's default updateTime desc order).
+
+    If known_ids is given, stops paging once a page contains an already-imported review,
+    since everything after it is older.
+    """
+    reviews: list = []
+    page_token = None
+    with httpx.Client() as client:
+        for _ in range(REVIEWS_MAX_PAGES):
+            params = {"pageSize": REVIEWS_PAGE_SIZE}
+            if page_token:
+                params["pageToken"] = page_token
+            res = client.get(
+                f"{REVIEWS_BASE}/{account_id}/{location_id}/reviews",
+                headers={"Authorization": f"Bearer {access_token}"},
+                params=params,
+            )
+            data = res.json()
+            if "error" in data:
+                raise Exception(f"Failed to fetch reviews: {data['error']}")
+            page = data.get("reviews", [])
+            reviews.extend(page)
+            page_token = data.get("nextPageToken")
+            if not page_token:
+                break
+            if known_ids and any(r.get("reviewId") in known_ids for r in page):
+                break
+    return reviews
+
+
+def post_reply(access_token: str, account_id: str, location_id: str, review_id: str, reply_text: str) -> dict:
+    with httpx.Client() as client:
+        res = client.put(
             f"{REVIEWS_BASE}/{account_id}/{location_id}/reviews/{review_id}/reply",
             headers={
                 "Authorization": f"Bearer {access_token}",

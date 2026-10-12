@@ -10,10 +10,11 @@ from app.models.user import User
 from app.models.tenant import Tenant
 from app.utils.dependencies import get_current_user
 from app.utils.limiter import limiter
-from app.services.review_processor import process_review
+from app.utils.plan_limits import within_trial_window
+from app.services.review_processor import run_review_processing
 from app.services.google_service import refresh_access_token, post_reply
 from app.config import settings
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import html
 import logging
 import uuid
@@ -23,14 +24,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 
 
-TRIAL_DAYS = 7
-
-
-def _in_trial(tenant: Tenant) -> bool:
-    created = tenant.created_at
-    if created.tzinfo is None:
-        created = created.replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc) < created + timedelta(days=TRIAL_DAYS)
+# Statuses where the owner can still approve, reject, or regenerate the reply
+_ACTIONABLE_STATUSES = ("pending", "flagged", "scheduled")
 
 
 def require_subscription(
@@ -41,7 +36,7 @@ def require_subscription(
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
-    if not tenant.is_subscribed and not _in_trial(tenant):
+    if not tenant.is_subscribed and not within_trial_window(tenant):
         raise HTTPException(
             status_code=403,
             detail="Your free trial has ended. Please subscribe at /billing.",
@@ -74,7 +69,7 @@ class ApproveRequest(BaseModel):
         return v.strip() if isinstance(v, str) else v
 
 
-async def _approve_and_post(
+def _approve_and_post(
     review: Review,
     tenant: Tenant,
     db: Session,
@@ -102,7 +97,8 @@ async def _approve_and_post(
         Review.id == review.id,
         Review.status == previous_status,
     ).update(
-        {"status": "approved", "generated_reply": text, "reply_at": None},
+        {"status": "approved", "generated_reply": text, "reply_at": None,
+         "updated_at": datetime.now(timezone.utc)},
         synchronize_session=False,
     )
     db.commit()
@@ -119,8 +115,8 @@ async def _approve_and_post(
         }
 
     try:
-        token = await refresh_access_token(tenant, db)
-        await post_reply(
+        token = refresh_access_token(tenant, db)
+        post_reply(
             token,
             tenant.google_account_id,
             tenant.google_location_id,
@@ -200,14 +196,14 @@ def approve_via_email_confirm(token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/approve-via-email", response_class=HTMLResponse, include_in_schema=False)
-async def approve_via_email(token: str, db: Session = Depends(get_db)):
+def approve_via_email(token: str, db: Session = Depends(get_db)):
     """One-click approval from a signed email link — no login required."""
     review, error = _review_from_email_token(token, db)
     if error:
         return error
     tenant = db.query(Tenant).filter(Tenant.id == review.tenant_id).first()
     try:
-        result = await _approve_and_post(review, tenant, db, ("pending",))
+        result = _approve_and_post(review, tenant, db, ("pending",))
     except HTTPException as exc:
         return HTMLResponse(
             _approval_html("Reply not posted", html.escape(exc.detail), color="#B91C1C"),
@@ -251,7 +247,7 @@ def get_review(
 
 
 @router.post("/{review_id}/approve")
-async def approve_reply(
+def approve_reply(
     review_id: UUID,
     data: Optional[ApproveRequest] = None,
     db: Session = Depends(get_db),
@@ -265,9 +261,9 @@ async def approve_reply(
     ).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
-    return await _approve_and_post(
+    return _approve_and_post(
         review, tenant, db,
-        ("pending", "flagged", "scheduled"),
+        _ACTIONABLE_STATUSES,
         reply_text=data.reply if data else None,
     )
 
@@ -285,9 +281,15 @@ def reject_reply(
     ).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
-    review.status = "rejected"
+    # Conditional update: a reply that's posted (or being posted) can't be rejected
+    rejected = db.query(Review).filter(
+        Review.id == review.id,
+        Review.status.in_(_ACTIONABLE_STATUSES),
+    ).update({"status": "rejected", "reply_at": None}, synchronize_session=False)
     db.commit()
     db.refresh(review)
+    if not rejected:
+        raise HTTPException(status_code=409, detail=f"This reply has already been {review.status}")
     return {"message": "Reply rejected", "review_id": str(review.id)}
 
 
@@ -309,12 +311,23 @@ def regenerate_reply(
     ).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
+    if review.status not in _ACTIONABLE_STATUSES:
+        raise HTTPException(status_code=409, detail=f"This reply has already been {review.status}")
     from app.services.ai_service import generate_reply
     risk_level = review.risk_level or "low"
-    new_reply = generate_reply(review.review_text or "", review.rating, tenant.name, risk_level=risk_level)
-    review.generated_reply = new_reply
+    new_reply = generate_reply(
+        review.review_text or "", review.rating, tenant.name,
+        risk_level=risk_level, tone_instructions=tenant.tone_instructions or "",
+    )
+    # Only store the draft if the review is still actionable (it may have been posted meanwhile)
+    updated = db.query(Review).filter(
+        Review.id == review.id,
+        Review.status.in_(_ACTIONABLE_STATUSES),
+    ).update({"generated_reply": new_reply}, synchronize_session=False)
     db.commit()
-    db.refresh(review)
+    if not updated:
+        db.refresh(review)
+        raise HTTPException(status_code=409, detail=f"This reply has already been {review.status}")
     return {"generated_reply": new_reply}
 
 
@@ -351,27 +364,6 @@ class ManualReviewInput(BaseModel):
         return v.strip() if isinstance(v, str) else v
 
 
-def _process_review_background(review_id: str, tenant_name: str, tone_instructions: str) -> None:
-    from uuid import UUID as PyUUID
-    from app.database import SessionLocal
-    from app.utils.plan_limits import at_reply_limit
-    db = SessionLocal()
-    try:
-        review = db.query(Review).filter(Review.id == PyUUID(review_id)).first()
-        if review:
-            tenant = db.query(Tenant).filter(Tenant.id == review.tenant_id).first()
-            if tenant and at_reply_limit(tenant, db):
-                review.status = "pending"
-                db.commit()
-                logger.info("Review %s skipped AI — tenant %s at reply limit", review_id, review.tenant_id)
-                return
-            process_review(review, db, tenant_name, tone_instructions=tone_instructions)
-    except Exception:
-        logger.exception("Background review processing failed for %s", review_id)
-    finally:
-        db.close()
-
-
 @router.post("/import")
 def import_review(
     data: ManualReviewInput,
@@ -392,10 +384,5 @@ def import_review(
     db.add(review)
     db.commit()
     db.refresh(review)
-    background_tasks.add_task(
-        _process_review_background,
-        str(review.id),
-        tenant.name,
-        tenant.tone_instructions or "",
-    )
+    background_tasks.add_task(run_review_processing, str(review.id))
     return review
