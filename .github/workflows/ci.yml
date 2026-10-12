@@ -44,7 +44,6 @@ jobs:
           OPENAI_API_KEY: sk-test-dummy
           STRIPE_SECRET_KEY: sk_test_dummy
           STRIPE_WEBHOOK_SECRET: whsec_test_dummy
-          STRIPE_PRICE_ID: price_test_dummy
           SENDGRID_API_KEY: SG.test-dummy
           FROM_EMAIL: no-reply@test.com
           GOOGLE_CLIENT_ID: test-client-id
@@ -53,8 +52,51 @@ jobs:
           CORS_ORIGINS: http://localhost:3000
           DEBUG: "true"
 
+  migrations:
+    name: Migrations (Postgres)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci
+      SECRET_KEY: ci-test-secret-key-at-least-32-chars-long!!
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Build schema from scratch
+        run: alembic upgrade head
+        working-directory: backend
+
+      - name: Models and migrations agree
+        run: alembic check
+        working-directory: backend
+
+      - name: Downgrade and re-upgrade latest migration
+        run: alembic downgrade -1 && alembic upgrade head
+        working-directory: backend
+
   frontend:
-    name: Frontend tests + type-check + build
+    name: Frontend tests + lint + type-check + build
     runs-on: ubuntu-latest
 
     steps:
@@ -73,6 +115,10 @@ jobs:
 
       - name: Run tests
         run: npm test
+        working-directory: frontend
+
+      - name: Lint
+        run: npm run lint
         working-directory: frontend
 
       - name: Type-check

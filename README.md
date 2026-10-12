@@ -1,72 +1,53 @@
-# Review SaaS — AI-Powered Review Management
+# Revio — AI-powered Google review management
 
-## Project Overview
-Subscription SaaS (£10-15/month) that automatically manages Google Reviews using AI.
+Multi-tenant SaaS that syncs a business's Google reviews, uses GPT-4o-mini to assess risk and
+draft replies, and posts approved replies back to Google Business Profile.
 
-## Tech Stack
-- Backend: Python, FastAPI, PostgreSQL, Redis, Celery
-- Frontend: Next.js (not started yet)
-- AI: OpenAI GPT-4o-mini
-- Auth: JWT tokens
-- Billing: Stripe (not started yet)
-- Email: SendGrid (not started yet)
+## Stack
+- **Backend:** FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redis — deployed on Railway
+- **Background jobs:** APScheduler inside the web process (see `backend/app/tasks/scheduler.py`)
+- **Frontend:** Next.js (`frontend/`) — deployed on Vercel
+- **Integrations:** OpenAI, Stripe, SendGrid, Google Business Profile APIs
 
-## Project Location
-C:\projects\review-saas
+## Review workflow
+| Risk (AI-assessed) | Rating | Result |
+|---|---|---|
+| high | any | `flagged` — owner alerted, never auto-posted |
+| medium | any | `pending` — owner approves from dashboard or email link |
+| low | 1–3★ | `pending` |
+| low | 4–5★ | `scheduled` — auto-posts after 24h unless edited/cancelled |
 
-## To Start Development
+A 4–5★ reply is held as `pending` instead if the review looks like it contains instructions
+to the AI, or the reply contains links/contact details (`auto_post_hold_reason`).
+
+Statuses: `processing → pending | flagged | scheduled → approved → posted`, or `rejected`.
+Reviews stuck in `processing` or `approved` are released back to `pending` by the scheduler.
+
+## Local development
 ```bash
-cd /c/projects/review-saas/backend
-source venv/Scripts/activate
-docker compose up -d
-uvicorn app.main:app --reload
+docker compose up -d                      # postgres + redis
+cd backend
+python -m venv venv && source venv/Scripts/activate
+pip install -r requirements.txt -r requirements-dev.txt
+cp .env.example .env                      # then fill in values
+alembic upgrade head
+uvicorn app.main:app --reload             # http://localhost:8000/docs when DEBUG=true
+
+cd ../frontend
+npm ci && npm run dev                     # http://localhost:3000
 ```
-Visit: http://127.0.0.1:8000/docs
 
-## What's Been Built
-- FastAPI server with health check endpoints
-- PostgreSQL + Redis running in Docker
-- Database models: Tenant, User, Review
-- User registration — creates tenant + user + JWT token
-- User login — verifies password + returns JWT token
-- Protected routes using JWT dependency
-- Reviews API: list, get, approve, reject
-- AI service: analyze_review() and generate_reply()
-- Review processor: full pipeline — analyze → generate → set status
+## Tests
+```bash
+cd backend && python -m pytest tests/
+cd frontend && npm test && npm run lint && npx tsc --noEmit
+```
+CI (`.github/workflows/ci.yml`) runs all of these plus `alembic upgrade head` against Postgres.
 
-## Review Risk Levels
-- low: auto-reply after delay (not built yet)
-- medium: generate draft, require owner approval
-- high: flag only, never auto-reply
+## Database migrations
+The schema is managed only by Alembic. `Procfile` runs `alembic upgrade head` before starting
+the server, so a failed migration stops the deploy. Create new migrations with
+`alembic revision --autogenerate -m "..."` and review them before committing.
 
-## Reply Status Flow
-pending → approved → posted
-pending → rejected
-flagged (high risk, manual only)
-
-## Database
-- PostgreSQL on port 5432
-- Database name: reviewsaas
-- User: postgres / Password: password
-
-## Environment Variables
-Located at: backend/.env
-Required keys: SECRET_KEY, DATABASE_URL, REDIS_URL, OPENAI_API_KEY, STRIPE_SECRET_KEY, SENDGRID_API_KEY
-
-## API Endpoints Built
-- POST /auth/register
-- POST /auth/login
-- GET /me (protected)
-- GET /reviews/ (protected)
-- GET /reviews/{id} (protected)
-- POST /reviews/{id}/approve (protected)
-- POST /reviews/{id}/reject (protected)
-- POST /reviews/test-process (protected, testing only)
-
-## What's Next
-1. Celery background tasks (auto-polling + delayed posting)
-2. Email notifications (SendGrid)
-3. Stripe billing
-4. Google Reviews API
-5. Next.js frontend dashboard
-6. Deployment
+## Configuration
+See `backend/.env.example` for every setting.

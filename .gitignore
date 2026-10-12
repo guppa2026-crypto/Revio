@@ -14,5 +14,9 @@ node_modules/
 
 # OS
 .DS_Store
-Thumbs.dbbackend/celerybeat-schedule*
+Thumbs.db
+
+# Editor backups
+*~
+
 stripe.exe
