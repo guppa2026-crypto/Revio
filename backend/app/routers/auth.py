@@ -1,7 +1,9 @@
 import hashlib
+import logging
 import re
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.database import get_db
@@ -17,6 +19,8 @@ from app.utils.limiter import limiter
 from app.utils.redis_client import get_redis
 from app.services.email_service import send_new_signup_notification, send_password_reset_email
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -38,6 +42,21 @@ def _validate_password(password: str) -> None:
         )
 
 
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def _user_by_email(db: Session, email: str):
+    # Case-insensitive so accounts created before emails were normalised still match
+    return db.query(User).filter(func.lower(User.email) == _normalize_email(email)).first()
+
+
+def _issue_token(response: Response, user: User) -> str:
+    token = create_access_token(data={"sub": str(user.id), "tenant_id": str(user.tenant_id)})
+    _set_auth_cookie(response, token)
+    return token
+
+
 def _set_auth_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key="access_token",
@@ -54,21 +73,22 @@ def _set_auth_cookie(response: Response, token: str) -> None:
 @limiter.limit("5/minute")
 def register(request: Request, response: Response, data: TenantCreate, db: Session = Depends(get_db)):
     _validate_password(data.password)
+    email = _normalize_email(data.email)
 
-    existing = db.query(User).filter(User.email == data.email).first()
+    existing = _user_by_email(db, email)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
 
-    tenant = Tenant(name=data.name, email=data.email)
+    tenant = Tenant(name=data.name, email=email)
     db.add(tenant)
     db.flush()
 
     user = User(
         tenant_id=tenant.id,
-        email=data.email,
+        email=email,
         hashed_password=hash_password(data.password),
         full_name=data.name,
         is_owner=True,
@@ -78,9 +98,8 @@ def register(request: Request, response: Response, data: TenantCreate, db: Sessi
     db.refresh(user)
     db.refresh(tenant)
 
-    token = create_access_token(data={"sub": str(user.id), "tenant_id": str(tenant.id)})
-    _set_auth_cookie(response, token)
-    send_new_signup_notification(data.name, data.email)
+    token = _issue_token(response, user)
+    send_new_signup_notification(data.name, email)
 
     return {"access_token": token, "token_type": "bearer", "user": user, "tenant": tenant}
 
@@ -94,6 +113,7 @@ class ChangePasswordRequest(BaseModel):
 @limiter.limit("5/minute")
 def change_password(
     request: Request,
+    response: Response,
     data: ChangePasswordRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -102,14 +122,17 @@ def change_password(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
     _validate_password(data.new_password)
     current_user.hashed_password = hash_password(data.new_password)
+    # Signs out every other session; this one gets a fresh token below
+    current_user.password_changed_at = datetime.now(timezone.utc)
     db.commit()
+    _issue_token(response, current_user)
     return {"message": "Password updated successfully"}
 
 
 @router.post("/login", response_model=Token)
 @limiter.limit("5/minute")
 def login(request: Request, response: Response, data: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == data.email).first()
+    user = _user_by_email(db, data.email)
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -120,8 +143,7 @@ def login(request: Request, response: Response, data: UserLogin, db: Session = D
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account is disabled")
 
     tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
-    token = create_access_token(data={"sub": str(user.id), "tenant_id": str(tenant.id)})
-    _set_auth_cookie(response, token)
+    token = _issue_token(response, user)
 
     return {"access_token": token, "token_type": "bearer", "user": user, "tenant": tenant}
 
@@ -141,7 +163,10 @@ def logout(request: Request, response: Response):
             if r:
                 remaining = int(payload.get("exp", 0) - datetime.now(timezone.utc).timestamp())
                 if remaining > 0:
-                    r.set(f"jwt_bl:{hashlib.sha256(token.encode()).hexdigest()}", "1", ex=remaining)
+                    try:
+                        r.set(f"jwt_bl:{hashlib.sha256(token.encode()).hexdigest()}", "1", ex=remaining)
+                    except Exception:
+                        logger.warning("Redis error blacklisting token on logout", exc_info=True)
     response.delete_cookie(key="access_token", path="/", samesite="lax")
     return {"message": "Logged out"}
 
@@ -153,7 +178,7 @@ class ForgotPasswordRequest(BaseModel):
 @router.post("/forgot-password")
 @limiter.limit("5/minute")
 def forgot_password(request: Request, data: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == data.email).first()
+    user = _user_by_email(db, data.email)
     if user:
         fingerprint = user.hashed_password[:16]
         token = create_password_reset_token(user.email, fingerprint)
@@ -175,7 +200,7 @@ def reset_password(request: Request, data: ResetPasswordRequest, db: Session = D
     if not payload:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reset link is invalid or has expired.")
 
-    user = db.query(User).filter(User.email == payload["sub"]).first()
+    user = _user_by_email(db, payload["sub"])
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reset link is invalid or has expired.")
 
@@ -184,5 +209,6 @@ def reset_password(request: Request, data: ResetPasswordRequest, db: Session = D
 
     _validate_password(data.new_password)
     user.hashed_password = hash_password(data.new_password)
+    user.password_changed_at = datetime.now(timezone.utc)  # sign out existing sessions
     db.commit()
     return {"message": "Password reset successfully. You can now log in."}

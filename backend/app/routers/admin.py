@@ -14,7 +14,8 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 def require_admin(current_user: User = Depends(get_current_user)):
-    if not settings.admin_emails_list or current_user.email not in settings.admin_emails_list:
+    admins = {e.lower() for e in settings.admin_emails_list}
+    if not admins or current_user.email.lower() not in admins:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
@@ -95,7 +96,7 @@ def grant_free_access(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    tenant = db.query(Tenant).filter(Tenant.email == body.email).first()
+    tenant = db.query(Tenant).filter(func.lower(Tenant.email) == body.email.strip().lower()).first()
     if not tenant:
         raise HTTPException(status_code=404, detail="No tenant found with that email")
     tenant.is_subscribed = True

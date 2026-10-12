@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "Review SaaS"
     DEBUG: bool = False
     SECRET_KEY: str
+    # Key for encrypting Google tokens at rest. Optional: falls back to SECRET_KEY, and
+    # values encrypted under SECRET_KEY stay readable after this is set.
+    ENCRYPTION_KEY: str = ""
 
     DATABASE_URL: str
     REDIS_URL: str = "redis://localhost:6379"

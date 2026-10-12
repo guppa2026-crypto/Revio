@@ -1,4 +1,6 @@
 import hashlib
+import logging
+from datetime import timezone
 from typing import Optional
 from uuid import UUID as PyUUID
 from fastapi import Depends, HTTPException, Request, status
@@ -9,6 +11,8 @@ from app.models.user import User
 from app.models.tenant import Tenant
 from app.utils.security import decode_access_token
 from app.utils.redis_client import get_redis
+
+logger = logging.getLogger(__name__)
 
 # auto_error=False so we can check the cookie first without FastAPI immediately rejecting
 security = HTTPBearer(auto_error=False)
@@ -41,7 +45,13 @@ def get_current_user(
     r = get_redis()
     if r:
         token_key = f"jwt_bl:{hashlib.sha256(token.encode()).hexdigest()}"
-        if r.exists(token_key):
+        try:
+            revoked = r.exists(token_key)
+        except Exception:
+            # Fail open: a Redis outage must not lock every user out
+            logger.warning("Redis error checking JWT blacklist — allowing request", exc_info=True)
+            revoked = False
+        if revoked:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has been revoked",
@@ -66,6 +76,16 @@ def get_current_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Account is disabled",
         )
+
+    if user.password_changed_at is not None:
+        changed = user.password_changed_at
+        if changed.tzinfo is None:
+            changed = changed.replace(tzinfo=timezone.utc)
+        if int(payload.get("iat", 0)) < int(changed.timestamp()):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired — please log in again",
+            )
 
     return user
 

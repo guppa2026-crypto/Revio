@@ -139,3 +139,80 @@ def test_admin_access_granted_for_admin(client, make_user):
     assert "total_customers" in data
     assert "subscribed" in data
     assert "mrr" in data
+
+
+def test_redis_outage_does_not_lock_users_out(client, make_user):
+    from unittest.mock import MagicMock, patch
+    import redis
+    make_user(email="redis@test.com")
+    client.post("/auth/login", json={"email": "redis@test.com", "password": "TestPass1!"})
+    broken = MagicMock()
+    broken.exists.side_effect = redis.exceptions.ConnectionError("down")
+    broken.set.side_effect = redis.exceptions.ConnectionError("down")
+
+    with patch("app.utils.dependencies.get_redis", return_value=broken), \
+         patch("app.routers.auth.get_redis", return_value=broken):
+        assert client.get("/me").status_code == 200
+        assert client.post("/auth/logout").status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Password changes revoke other sessions
+# ---------------------------------------------------------------------------
+
+def test_password_change_revokes_old_tokens_but_keeps_current_session(client, make_user):
+    make_user(email="rotate@test.com")
+    old_token = client.post(
+        "/auth/login", json={"email": "rotate@test.com", "password": "TestPass1!"},
+    ).json()["access_token"]
+    import time
+    time.sleep(1.1)  # iat has one-second resolution
+
+    res = client.post("/auth/change-password",
+                      json={"current_password": "TestPass1!", "new_password": "NewPass2@x"})
+    assert res.status_code == 200
+
+    assert client.get("/me").status_code == 200  # this browser got a fresh cookie
+    client.cookies.clear()
+    stale = client.get("/me", headers={"Authorization": f"Bearer {old_token}"})
+    assert stale.status_code == 401
+
+
+def test_password_reset_revokes_old_tokens(client, make_user, db):
+    from app.utils.security import create_password_reset_token
+    _, user = make_user(email="resetrevoke@test.com")
+    old_token = client.post(
+        "/auth/login", json={"email": "resetrevoke@test.com", "password": "TestPass1!"},
+    ).json()["access_token"]
+    import time
+    time.sleep(1.1)
+
+    reset = create_password_reset_token(user.email, user.hashed_password[:16])
+    assert client.post("/auth/reset-password",
+                       json={"token": reset, "new_password": "NewPass2@x"}).status_code == 200
+
+    client.cookies.clear()
+    assert client.get("/me", headers={"Authorization": f"Bearer {old_token}"}).status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Emails are case-insensitive
+# ---------------------------------------------------------------------------
+
+def test_register_rejects_case_variant_duplicate(client):
+    p = "TestPass1!"
+    assert client.post("/auth/register", json={"name": "A", "email": "Owner@Shop.com", "password": p}).status_code == 200
+    dup = client.post("/auth/register", json={"name": "B", "email": "owner@shop.com", "password": p})
+    assert dup.status_code == 400
+
+
+def test_login_is_case_insensitive_including_legacy_mixed_case(client, make_user):
+    make_user(email="Legacy.User@Test.com")  # stored before normalisation existed
+    res = client.post("/auth/login", json={"email": "legacy.user@test.com", "password": "TestPass1!"})
+    assert res.status_code == 200
+
+
+def test_admin_email_match_is_case_insensitive(client, make_user):
+    make_user(email="ADMIN@test.com")
+    client.post("/auth/login", json={"email": "admin@test.com", "password": "TestPass1!"})
+    assert client.get("/admin/stats").status_code == 200
