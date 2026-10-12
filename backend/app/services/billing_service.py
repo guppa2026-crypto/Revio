@@ -12,12 +12,14 @@ PLAN_PRICE_IDS = {
 }
 
 
-def create_checkout_session(tenant_id: str, tenant_email: str, plan: str) -> str:
+def create_checkout_session(tenant_id: str, tenant_email: str, plan: str, customer_id: str | None = None) -> str:
     price_id = PLAN_PRICE_IDS.get(plan)
     if not price_id:
         raise ValueError(f"Unknown plan: {plan!r}")
+    # Reuse the existing Stripe customer so a returning subscriber doesn't get a duplicate
+    customer_args = {"customer": customer_id} if customer_id else {"customer_email": tenant_email}
     session = stripe.checkout.Session.create(
-        customer_email=tenant_email,
+        **customer_args,
         payment_method_types=["card"],
         line_items=[{"price": price_id, "quantity": 1}],
         mode="subscription",
@@ -43,13 +45,14 @@ def upgrade_subscription(stripe_subscription_id: str) -> bool:
         return False
 
 
-def cancel_subscription(stripe_subscription_id: str) -> bool:
+def cancel_subscription(stripe_subscription_id: str) -> dict | None:
+    """Schedule cancellation at the end of the current period. Returns the subscription."""
     try:
-        stripe.Subscription.cancel(stripe_subscription_id)
-        return True
+        sub = stripe.Subscription.modify(stripe_subscription_id, cancel_at_period_end=True)
+        return sub.to_dict()
     except Exception as e:
         logger.exception("Failed to cancel subscription: %s", e)
-        return False
+        return None
 
 
 def create_portal_session(stripe_customer_id: str, return_url: str) -> str:
@@ -60,9 +63,10 @@ def create_portal_session(stripe_customer_id: str, return_url: str) -> str:
     return session.url
 
 
-def get_subscription(stripe_subscription_id: str):
+def get_subscription(stripe_subscription_id: str) -> dict | None:
     try:
-        return stripe.Subscription.retrieve(stripe_subscription_id)
+        # to_dict(): StripeObject has no .get() in current stripe-python
+        return stripe.Subscription.retrieve(stripe_subscription_id).to_dict()
     except Exception as e:
         logger.exception("Failed to get subscription: %s", e)
         return None

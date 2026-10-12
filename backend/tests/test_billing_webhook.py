@@ -211,3 +211,93 @@ def test_unknown_event_type_returns_ok(client):
     res = _post(client, event)
     assert res.status_code == 200
     assert res.json() == {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# A failed delivery must not be deduplicated away — Stripe's retry is processed
+# ---------------------------------------------------------------------------
+
+def test_failed_event_is_processed_on_retry(make_user, db):
+    from fastapi.testclient import TestClient
+    import app.routers.billing as billing
+    from app.main import app
+
+    tenant, _ = make_user(email="retry@test.com", is_subscribed=False)
+    event = _make_event(
+        "checkout.session.completed",
+        {"metadata": {"tenant_id": str(tenant.id)}, "customer": "cus_r", "subscription": "sub_r"},
+        event_id="evt_retry_001",
+    )
+
+    # Dedup keys held in a set standing in for Redis
+    seen: set[str] = set()
+
+    def mark(event_id):
+        if event_id in seen:
+            return False
+        seen.add(event_id)
+        return True
+
+    class FakeRedis:
+        def delete(self, key):
+            seen.discard(key.removeprefix("stripe_evt:"))
+
+    real_handle = billing._handle_event
+    calls = {"n": 0}
+
+    def flaky_handle(*args):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("transient DB failure")
+        return real_handle(*args)
+
+    client = TestClient(app, raise_server_exceptions=False)
+    with patch.object(billing, "_mark_event_processed", side_effect=mark),          patch.object(billing, "_redis", FakeRedis()),          patch.object(billing, "_handle_event", side_effect=flaky_handle),          patch("stripe.Webhook.construct_event", return_value=event):
+        first = client.post("/billing/webhook", content=json.dumps(event), headers={"stripe-signature": "x"})
+        retry = client.post("/billing/webhook", content=json.dumps(event), headers={"stripe-signature": "x"})
+
+    assert first.status_code == 500
+    assert retry.status_code == 200
+    db.refresh(tenant)
+    assert tenant.is_subscribed is True
+
+
+# ---------------------------------------------------------------------------
+# Real signature verification — no mocking of the Stripe SDK
+# ---------------------------------------------------------------------------
+
+def _signed(payload: str) -> str:
+    import hashlib
+    import hmac
+    import time
+    from app.config import settings
+    ts = int(time.time())
+    sig = hmac.new(settings.STRIPE_WEBHOOK_SECRET.encode(), f"{ts}.{payload}".encode(), hashlib.sha256).hexdigest()
+    return f"t={ts},v1={sig}"
+
+
+def test_genuinely_signed_checkout_event_activates_tenant(client, make_user, db):
+    """Regression: the SDK's StripeObject has no .get(), which broke every real webhook."""
+    tenant, _ = make_user(email="realsig@test.com", is_subscribed=False)
+    payload = json.dumps({
+        "id": "evt_real_001", "object": "event", "type": "checkout.session.completed",
+        "data": {"object": {
+            "object": "checkout.session",
+            "metadata": {"tenant_id": str(tenant.id), "plan": "starter"},
+            "customer": "cus_real", "subscription": "sub_real",
+        }},
+    })
+
+    res = client.post("/billing/webhook", content=payload, headers={"stripe-signature": _signed(payload)})
+
+    assert res.status_code == 200
+    db.refresh(tenant)
+    assert tenant.is_subscribed is True
+    assert tenant.plan == "starter"
+
+
+def test_tampered_payload_rejected(client):
+    payload = json.dumps({"id": "evt_x", "type": "checkout.session.completed", "data": {"object": {}}})
+    res = client.post("/billing/webhook", content=payload.replace("evt_x", "evt_y"),
+                      headers={"stripe-signature": _signed(payload)})
+    assert res.status_code == 400

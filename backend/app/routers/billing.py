@@ -1,12 +1,15 @@
+import json
+import math
 import stripe
 import logging
 import redis
 from uuid import UUID as PyUUID
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from app.database import get_db
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -18,7 +21,7 @@ from app.services.billing_service import (
     upgrade_subscription,
 )
 from app.utils.dependencies import get_current_user
-from app.utils.plan_limits import get_reply_limit, get_replies_used
+from app.utils.plan_limits import get_reply_limit, get_replies_used, trial_ends_at, within_trial_window
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -42,6 +45,14 @@ def _mark_event_processed(event_id: str) -> bool:
         return True
 
 
+def _unmark_event(event_id: str) -> None:
+    """Forget an event whose handling failed, so Stripe's retry is processed rather than skipped."""
+    try:
+        _redis.delete(f"stripe_evt:{event_id}")
+    except Exception:
+        logger.warning("Redis unavailable — could not release webhook event %s for retry", event_id)
+
+
 class CheckoutRequest(BaseModel):
     plan: Literal["starter", "pro"]
 
@@ -57,7 +68,13 @@ def create_checkout(
         raise HTTPException(status_code=404, detail="Tenant not found")
     if tenant.is_subscribed:
         raise HTTPException(status_code=400, detail="Already subscribed. Use the upgrade or portal endpoint.")
-    url = create_checkout_session(tenant.id, tenant.email, body.plan)
+    if tenant.subscription_status in ("past_due", "unpaid", "incomplete") and tenant.stripe_subscription_id:
+        # The old subscription still exists in Stripe — a new checkout would bill twice
+        raise HTTPException(
+            status_code=409,
+            detail="Your last payment failed. Please update your payment method in the billing portal.",
+        )
+    url = create_checkout_session(tenant.id, tenant.email, body.plan, customer_id=tenant.stripe_customer_id)
     return {"checkout_url": url}
 
 
@@ -81,6 +98,16 @@ def upgrade_to_pro(
     return {"message": "Upgraded to Pro"}
 
 
+def _current_period_end(subscription: dict | None) -> int | None:
+    """Period end as a unix timestamp. Newer Stripe API versions put it on the items."""
+    if not subscription:
+        return None
+    if subscription.get("current_period_end"):
+        return subscription["current_period_end"]
+    items = (subscription.get("items") or {}).get("data") or []
+    return items[0].get("current_period_end") if items else None
+
+
 @router.get("/status")
 def billing_status(
     db: Session = Depends(get_db),
@@ -94,13 +121,9 @@ def billing_status(
     if tenant.stripe_subscription_id:
         subscription = get_subscription(tenant.stripe_subscription_id)
 
-    created = tenant.created_at
-    if created.tzinfo is None:
-        created = created.replace(tzinfo=timezone.utc)
-    trial_end = created + timedelta(days=7)
-    now = datetime.now(timezone.utc)
-    trial_days_remaining = max(0, (trial_end.date() - now.date()).days)
-    is_trial = not tenant.is_subscribed and trial_days_remaining > 0
+    seconds_left = (trial_ends_at(tenant) - datetime.now(timezone.utc)).total_seconds()
+    trial_days_remaining = math.ceil(seconds_left / 86400) if seconds_left > 0 else 0
+    is_trial = not tenant.is_subscribed and within_trial_window(tenant)
 
     limit = get_reply_limit(tenant)
     all_time = not tenant.is_subscribed
@@ -109,7 +132,8 @@ def billing_status(
     return {
         "is_subscribed": tenant.is_subscribed,
         "subscription_status": tenant.subscription_status,
-        "current_period_end": subscription.get("current_period_end") if subscription else None,
+        "current_period_end": _current_period_end(subscription),
+        "cancel_at_period_end": bool(subscription and subscription.get("cancel_at_period_end")),
         "is_trial": is_trial,
         "trial_days_remaining": trial_days_remaining,
         "plan": tenant.plan,
@@ -138,30 +162,37 @@ def cancel_billing(
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant or not tenant.stripe_subscription_id:
         raise HTTPException(status_code=400, detail="No active subscription")
-    success = cancel_subscription(tenant.stripe_subscription_id)
-    if not success:
+    # Per the Terms, cancellation takes effect at the end of the paid period. Access stays
+    # on until Stripe sends customer.subscription.deleted at that point.
+    subscription = cancel_subscription(tenant.stripe_subscription_id)
+    if subscription is None:
         raise HTTPException(status_code=500, detail="Failed to cancel subscription")
-    tenant.is_subscribed = False
-    tenant.subscription_status = "canceled"
-    db.commit()
-    return {"message": "Subscription cancelled"}
+    return {
+        "message": "Your subscription will end at the end of the current billing period.",
+        "current_period_end": _current_period_end(subscription),
+    }
 
 
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
+    # The handling below does blocking DB work — keep it off the event loop
+    return await run_in_threadpool(_process_webhook, payload, sig_header, db)
 
+
+def _process_webhook(payload: bytes, sig_header: str | None, db: Session) -> dict:
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-        )
+        stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+        # Work on the verified payload as plain JSON: the SDK's StripeObject is not a dict
+        # in current stripe-python, so `.get()` on the event object raises AttributeError
+        event = json.loads(payload)
     except stripe.error.SignatureVerificationError:
         logger.warning("Stripe webhook signature verification failed")
         raise HTTPException(status_code=400, detail="Invalid signature")
-    except Exception as e:
-        logger.exception("Webhook parse error: %s", e)
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Webhook parse error")
+        raise HTTPException(status_code=400, detail="Invalid webhook payload")
 
     event_type = event["type"]
     event_id = event["id"]
@@ -172,22 +203,35 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         logger.info("Stripe event %s already processed — skipping", event_id)
         return {"status": "ok"}
 
+    try:
+        _handle_event(event_type, event_id, obj, db)
+    except Exception:
+        # Release the dedup key so Stripe's automatic retry gets processed
+        db.rollback()
+        _unmark_event(event_id)
+        logger.exception("Failed to handle Stripe event %s (%s) — Stripe will retry", event_id, event_type)
+        raise HTTPException(status_code=500, detail="Webhook handling failed")
+
+    return {"status": "ok"}
+
+
+def _handle_event(event_type: str, event_id: str, obj: dict, db: Session) -> None:
     if event_type == "checkout.session.completed":
         metadata = obj.get("metadata") or {}
         tenant_id_str = metadata.get("tenant_id")
         if not tenant_id_str:
             logger.error("checkout.session.completed missing tenant_id — event %s", event_id)
-            return {"status": "ok"}
+            return
         try:
             tenant_id = PyUUID(tenant_id_str)
         except (ValueError, TypeError):
             logger.error("checkout.session.completed invalid tenant_id %r — event %s", tenant_id_str, event_id)
-            return {"status": "ok"}
+            return
 
         tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
         if not tenant:
             logger.error("checkout.session.completed — tenant %s not found", tenant_id)
-            return {"status": "ok"}
+            return
 
         tenant.stripe_customer_id = obj.get("customer")
         tenant.stripe_subscription_id = obj.get("subscription")
@@ -204,7 +248,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         ).first()
         if not tenant:
             logger.warning("subscription.updated — no tenant for sub %s", obj.get("id"))
-            return {"status": "ok"}
+            return
 
         tenant.subscription_status = stripe_status
         tenant.is_subscribed = stripe_status in ("active", "trialing")
@@ -228,7 +272,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         ).first()
         if not tenant:
             logger.warning("invoice.payment_failed — no tenant for customer %s", customer_id)
-            return {"status": "ok"}
+            return
 
         tenant.subscription_status = "past_due"
         tenant.is_subscribed = False
@@ -241,7 +285,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         ).first()
         if not tenant:
             logger.warning("subscription.deleted — no tenant for sub %s", obj.get("id"))
-            return {"status": "ok"}
+            return
 
         tenant.is_subscribed = False
         tenant.subscription_status = "canceled"
@@ -250,5 +294,3 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     else:
         logger.debug("Unhandled Stripe event: %s", event_type)
-
-    return {"status": "ok"}
