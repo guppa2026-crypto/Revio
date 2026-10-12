@@ -7,11 +7,20 @@ TRIAL_REPLY_LIMIT = 5
 STARTER_REPLY_LIMIT = 30
 
 
-def _in_trial(tenant) -> bool:
+def trial_ends_at(tenant) -> datetime:
     created = tenant.created_at
     if created.tzinfo is None:
         created = created.replace(tzinfo=timezone.utc)
-    return not tenant.is_subscribed and datetime.now(timezone.utc) < created + timedelta(days=TRIAL_DAYS)
+    return created + timedelta(days=TRIAL_DAYS)
+
+
+def within_trial_window(tenant) -> bool:
+    """True during the first TRIAL_DAYS after signup, regardless of subscription."""
+    return datetime.now(timezone.utc) < trial_ends_at(tenant)
+
+
+def _in_trial(tenant) -> bool:
+    return not tenant.is_subscribed and within_trial_window(tenant)
 
 
 def get_reply_limit(tenant) -> int | None:

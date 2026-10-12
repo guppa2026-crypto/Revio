@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from collections import defaultdict
 from app.database import get_db
 from app.models.review import Review
@@ -12,9 +12,26 @@ from app.routers.reviews import require_subscription
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
+# A reply counts as "responded" once it is live on Google (or, for manually imported
+# reviews, approved for the owner to copy across). Scheduled replies aren't live yet.
+_RESPONDED = ("posted", "approved")
+
+
 def _utc(dt: datetime) -> datetime:
     """Attach UTC timezone to a naive datetime."""
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _last_months(now: datetime, count: int) -> list[datetime]:
+    """First day of each of the last `count` calendar months, oldest first (incl. this month)."""
+    year, month = now.year, now.month
+    months = []
+    for _ in range(count):
+        months.append(datetime(year, month, 1, tzinfo=timezone.utc))
+        month -= 1
+        if month == 0:
+            month, year = 12, year - 1
+    return list(reversed(months))
 
 
 @router.get("/")
@@ -24,32 +41,30 @@ def get_analytics(
     tenant: Tenant = Depends(require_subscription),
 ):
     now = datetime.now(timezone.utc)
-    six_months_ago = now - timedelta(days=183)
+    months = _last_months(now, 6)
 
+    # Bucket by when the customer wrote the review, not when we imported it — the first
+    # Google sync imports the whole backlog at once
     reviews = db.query(Review).filter(
         Review.tenant_id == current_user.tenant_id,
-        Review.created_at >= six_months_ago,
+        Review.review_date >= months[0],
         Review.status != "processing",
     ).all()
 
-    # Group by YYYY-MM
     by_month: dict[str, list[Review]] = defaultdict(list)
     for r in reviews:
-        key = _utc(r.created_at).strftime("%Y-%m")
+        key = _utc(r.review_date).strftime("%Y-%m")
         by_month[key].append(r)
 
-    # Build last 6 complete months (oldest → newest)
+    # Last 6 calendar months including the current one (oldest → newest)
     monthly = []
-    for i in range(5, -1, -1):
-        dt = now.replace(day=1) - timedelta(days=i * 30)
+    for dt in months:
         key = dt.strftime("%Y-%m")
         month_label = dt.strftime("%b")
         month_reviews = by_month.get(key, [])
         count = len(month_reviews)
         avg = round(sum(r.rating for r in month_reviews) / count, 2) if count else None
-        responded = sum(
-            1 for r in month_reviews if r.status in ("posted", "approved", "scheduled")
-        )
+        responded = sum(1 for r in month_reviews if r.status in _RESPONDED)
         monthly.append({
             "month": key,
             "label": month_label,
@@ -66,9 +81,7 @@ def get_analytics(
 
     total = len(all_reviews)
     overall_avg = round(sum(r.rating for r in all_reviews) / total, 2) if total else 0.0
-    total_responded = sum(
-        1 for r in all_reviews if r.status in ("posted", "approved", "scheduled")
-    )
+    total_responded = sum(1 for r in all_reviews if r.status in _RESPONDED)
     response_rate = round(total_responded / total, 4) if total else 0.0
 
     # Average time from review created to reply posted (hours), posted reviews only
