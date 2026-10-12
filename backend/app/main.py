@@ -25,21 +25,13 @@ if settings.SENTRY_DSN:
     )
 
 
-def _run_migrations():
-    """Run Alembic migrations on startup so the schema is always current."""
-    try:
-        from alembic.config import Config
-        from alembic import command
-        alembic_cfg = Config("alembic.ini")
-        command.upgrade(alembic_cfg, "head")
-        logger.info("Alembic migrations applied successfully")
-    except Exception as exc:
-        logger.exception("Alembic migration FAILED — app may be running with stale schema: %s", exc)
+# Migrations run as a separate step before the server starts (see Procfile:
+# `alembic upgrade head && uvicorn ...`), so a failed migration stops the deploy
+# instead of letting the app run against a stale schema.
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    _run_migrations()
     start_scheduler()
     yield
     stop_scheduler()

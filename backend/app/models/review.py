@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Index, Integer, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -7,12 +7,18 @@ from app.database import Base
 
 class Review(Base):
     __tablename__ = "reviews"
+    __table_args__ = (
+        # A Google review id is unique per connected business, not globally — two tenants
+        # can legitimately connect the same location
+        UniqueConstraint("tenant_id", "google_review_id", name="uq_reviews_tenant_google_review"),
+        Index("ix_reviews_status_reply_at", "status", "reply_at"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
 
     # Review details from Google
-    google_review_id = Column(String, unique=True, nullable=False)
+    google_review_id = Column(String, nullable=False)
     reviewer_name = Column(String, nullable=True)
     rating = Column(Integer, nullable=False)
     review_text = Column(Text, nullable=True)
