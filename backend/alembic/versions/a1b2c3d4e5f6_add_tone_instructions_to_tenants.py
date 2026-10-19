@@ -16,7 +16,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('tenants', sa.Column('tone_instructions', sa.Text(), nullable=True))
+    # Production already has this column (created by create_all before this migration
+    # was ever recorded), so only add it where it's missing
+    columns = {c["name"] for c in sa.inspect(op.get_bind()).get_columns("tenants")}
+    if "tone_instructions" not in columns:
+        op.add_column('tenants', sa.Column('tone_instructions', sa.Text(), nullable=True))
 
 
 def downgrade() -> None:
